@@ -8,6 +8,7 @@ import {
 import { TransactionDetailsForUserOp } from './TransactionDetailsForUserOp'
 import { resolveProperties } from 'ethers/lib/utils'
 import { PaymasterAPI, PaymasterOption } from './PaymasterAPI'
+import { ApprovalOption, GuardianAPI } from './GuardianAPI'
 import { getUserOpHash, NotPromise, packUserOp } from '@account-abstraction/utils'
 import { calcPreVerificationGas, GasOverheads } from './calcPreVerificationGas'
 
@@ -17,6 +18,7 @@ export interface BaseApiParams {
   accountAddress?: string
   overheads?: Partial<GasOverheads>
   paymasterAPI?: PaymasterAPI
+  guardianAPI?: GuardianAPI
 }
 
 export interface UserOpResult {
@@ -48,6 +50,7 @@ export abstract class BaseAccountAPI {
   entryPointAddress: string
   accountAddress?: string
   paymasterAPI?: PaymasterAPI
+  guardianAPI?: GuardianAPI
 
   /**
    * base constructor.
@@ -59,6 +62,7 @@ export abstract class BaseAccountAPI {
     this.entryPointAddress = params.entryPointAddress
     this.accountAddress = params.accountAddress
     this.paymasterAPI = params.paymasterAPI
+    this.guardianAPI = params.guardianAPI
 
     // factory "connect" define the contract address. the contract "connect" defines the "from" address.
     this.entryPointView = EntryPoint__factory.connect(params.entryPointAddress, params.provider).connect(ethers.constants.AddressZero)
@@ -120,18 +124,10 @@ export abstract class BaseAccountAPI {
    * calculate the account address even before it is deployed
    */
   async getCounterFactualAddress (): Promise<string> {
-    const initCode = this.getAccountInitCode()
-    // use entryPoint to query account address (factory can provide a helper method to do the same, but
-    // this method attempts to be generic
-    try {
-      await this.entryPointView.callStatic.getSenderAddress(initCode)
-    } catch (e: any) {
-      if (e.errorArgs == null) {
-        throw e
-      }
-      return e.errorArgs.sender
+    if (this.accountAddress == null) {
+      throw new Error('accountAddress is not set')
     }
-    throw new Error('must handle revert')
+    return this.accountAddress
   }
 
   /**
@@ -150,7 +146,7 @@ export abstract class BaseAccountAPI {
    * NOTE: createUnsignedUserOp will add to this value the cost of creation, if the contract is not yet created.
    */
   async getVerificationGasLimit (): Promise<BigNumberish> {
-    return 100000
+    return 200000
   }
 
   /**
@@ -287,9 +283,15 @@ export abstract class BaseAccountAPI {
    * Sign the filled userOp.
    * @param userOp the UserOperation to sign (with signature field ignored)
    */
-  async signUserOp (userOp: UserOperationStruct): Promise<UserOperationStruct> {
+  async signUserOp (userOp: UserOperationStruct, approvalOption?: ApprovalOption): Promise<UserOperationStruct> {
+    let signature: string
     const userOpHash = await this.getUserOpHash(userOp)
-    const signature = this.signUserOpHash(userOpHash)
+    if (approvalOption != null && this.guardianAPI != null) {
+      const op = await resolveProperties(userOp)
+      signature = await this.guardianAPI.signUserOp(op.callData, userOpHash, approvalOption)
+    } else {
+      signature = await this.signUserOpHash(userOpHash)
+    }
     return {
       ...userOp,
       signature
@@ -300,8 +302,8 @@ export abstract class BaseAccountAPI {
    * helper method: create and sign a user operation.
    * @param info transaction details for the userOp
    */
-  async createSignedUserOp (info: TransactionDetailsForUserOp, paymasterOption?: PaymasterOption): Promise<UserOperationStruct> {
-    return await this.signUserOp(await this.createUnsignedUserOp(info, paymasterOption))
+  async createSignedUserOp (info: TransactionDetailsForUserOp, paymasterOption?: PaymasterOption, approvalOption?: ApprovalOption): Promise<UserOperationStruct> {
+    return await this.signUserOp(await this.createUnsignedUserOp(info, paymasterOption), approvalOption)
   }
 
   /**

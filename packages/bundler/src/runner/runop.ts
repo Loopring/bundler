@@ -9,15 +9,17 @@ import * as dotenv from 'dotenv'
 import { BigNumber, Signer, Wallet, ethers } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { SimpleAccountFactory__factory } from '@account-abstraction/contracts'
-import { formatEther, keccak256 } from 'ethers/lib/utils'
+import { formatEther } from 'ethers/lib/utils'
 import { Command } from 'commander'
 import { erc4337RuntimeVersion } from '@account-abstraction/utils'
 import {
   DeterministicDeployer, HttpRpcClient,
   LoopringAccountAPI as SimpleAccountAPI,
   PaymasterOption, PaymasterAPI,
-  EntryPoint, EntryPoint__factory
-  // SmartWalletV3, SmartWalletV3__factory, VerifyingPaymaster, VerifyingPaymaster__factory,
+  EntryPoint, EntryPoint__factory,
+  ApprovalOption, GuardianAPI, ActionType,
+  SmartWalletV3__factory
+  // SmartWalletV3, VerifyingPaymaster, VerifyingPaymaster__factory,
   // calcPreVerificationGas, USDT__factory
 } from '@account-abstraction/sdk'
 import { getNetworkProvider } from '../Config'
@@ -26,6 +28,7 @@ dotenv.config()
 
 const ENTRY_POINT = '0x7bc9bf3C19f06367EC25DfD02debde100D4F5605'
 const PAYMASTER = '0x27a706a09A498dA1A4C21E431fB75b7835a6299F'
+const SMARTWALLET_IMPL = '0x34be5d12c93Eee6312237B6F2875b097B76f83E4'
 
 class Runner {
   bundlerProvider!: HttpRpcClient
@@ -43,7 +46,7 @@ class Runner {
   constructor (
     readonly provider: JsonRpcProvider,
     readonly bundlerUrl: string,
-    readonly accountOwner: Signer,
+    readonly accountOwner: Wallet,
     readonly paymaster: string,
     readonly paymasterOwner: Signer,
     readonly entryPointAddress = ENTRY_POINT,
@@ -55,7 +58,7 @@ class Runner {
     return await this.accountApi.getCounterFactualAddress()
   }
 
-  async init (accountAddress: string): Promise<this> {
+  async init (accountAddress: string, guardianPrivateKeys: string[]): Promise<this> {
     const net = await this.provider.getNetwork()
     const chainId = net.chainId
     // const dep = new DeterministicDeployer(this.provider)
@@ -65,6 +68,12 @@ class Runner {
       paymaster: this.paymaster,
       paymasterOwner: this.paymasterOwner
     })
+    const guardianAPI = new GuardianAPI({
+      owner: this.accountOwner,
+      wallet: accountAddress,
+      verifyingContract: SMARTWALLET_IMPL,
+      guardians: guardianPrivateKeys.map(priKey => new Wallet(priKey, this.provider))
+    }, this.provider)
     this.accountApi = new SimpleAccountAPI({
       provider: this.provider,
       entryPointAddress: this.entryPointAddress,
@@ -73,6 +82,7 @@ class Runner {
       index: this.index,
       accountAddress,
       paymasterAPI,
+      guardianAPI,
       overheads: {
         // perUserOp: 100000
       }
@@ -92,11 +102,13 @@ class Runner {
     return e
   }
 
-  async runUserOp (target: string, data: string, paymasterOption?: PaymasterOption): Promise<void> {
+  async runUserOp (target: string, data: string, paymasterOption?: PaymasterOption, approvalOption?: ApprovalOption): Promise<void> {
     const signedUserOp = await this.accountApi.createSignedUserOp({
       target,
       data
-    }, paymasterOption)
+    }, paymasterOption, approvalOption)
+    // const estimatedGas = await this.bundlerProvider.estimateUserOpGas(signedUserOp)
+    // console.log(estimatedGas)
 
     try {
       const userOpHash = await this.bundlerProvider.sendUserOpToBundler(signedUserOp)
@@ -119,7 +131,7 @@ async function main (): Promise<void> {
   const opts = program.parse().opts()
   const provider = getNetworkProvider(opts.network)
   // const accountOwner = new Wallet('0x'.padEnd(66, '7'))
-  const accountOwner = new Wallet(process.env.ACCOUNT_OWNER_PRIVATE_KEY as string)
+  const accountOwner = new Wallet(process.env.ACCOUNT_OWNER_PRIVATE_KEY as string, provider)
 
   const index = 0
   const addr = process.env.SMARTWALLET_ADDR as string
@@ -130,7 +142,7 @@ async function main (): Promise<void> {
     accountOwner, PAYMASTER,
     paymasterOwner, opts.entryPoint,
     index
-  ).init(addr)
+  ).init(addr, [process.env.GUARDIAN_PRIVATE_KEY as string])
 
   // const addr = await client.getAddress()
 
@@ -145,15 +157,21 @@ async function main (): Promise<void> {
   const bal = await getBalance(addr)
   console.log('account address', addr, 'deployed=', await isDeployed(addr), 'bal=', formatEther(bal))
 
+  const payToken = '0x116C55AFEaB4f16CcC5e91B563D450A4aE14CA15'
   const paymasterOption = {
-    payToken: '0x116C55AFEaB4f16CcC5e91B563D450A4aE14CA15',
+    payToken,
     valueOfEth: ethers.utils.parseUnits('625', 12),
     validUntil: 0
   }
+  const approvalOption = {
+    validUntil: 0,
+    action_type: ActionType.ApproveToken
+  }
+  const data = SmartWalletV3__factory.createInterface().encodeFunctionData('approveTokenWA', [payToken, PAYMASTER, ethers.constants.MaxUint256])
   // const data = USDT__factory.createInterface().encodeFunctionData('balanceOf', [addr])
-  const data = keccak256(Buffer.from('entryPoint()')).slice(0, 10)
+  // const data = keccak256(Buffer.from('entryPoint()')).slice(0, 10)
   console.log('data=', data)
-  await client.runUserOp(addr, data, paymasterOption)
+  await client.runUserOp(addr, data, paymasterOption, approvalOption)
   console.log('after run1')
   // client.accountApi.overheads!.perUserOp = 30000
   // await client.runUserOp(dest, data, paymasterOption, signer)
