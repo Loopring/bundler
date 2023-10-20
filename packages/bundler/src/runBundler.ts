@@ -4,11 +4,10 @@ import { ethers, Wallet } from 'ethers'
 
 import { BundlerServer } from './BundlerServer'
 import { UserOpMethodHandler } from './UserOpMethodHandler'
-import { EntryPoint, EntryPoint__factory } from '@account-abstraction/contracts'
 
 import { initServer } from './modules/initServer'
 import { DebugMethodHandler } from './DebugMethodHandler'
-import { DeterministicDeployer } from '@account-abstraction/sdk'
+import { DeterministicDeployer, EntryPoint, EntryPoint__factory } from '@account-abstraction/sdk'
 import { isGeth, supportsRpcMethod } from './utils'
 import { resolveConfiguration } from './Config'
 import { bundlerConfigDefault } from './BundlerConfig'
