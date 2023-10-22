@@ -1,6 +1,6 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
 
-import { EntryPoint__factory, SimpleAccountFactory__factory } from '@account-abstraction/contracts'
+import { EntryPoint__factory, WalletFactory__factory as SimpleAccountFactory__factory } from '@account-abstraction/contracts'
 
 import { ClientConfig } from './ClientConfig'
 import { SimpleAccountAPI } from './SimpleAccountAPI'

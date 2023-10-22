@@ -1,0 +1,20 @@
+{
+  "name": "@account-abstraction/contracts",
+  "version": "0.6.0",
+  "main": "./dist/src/index.js",
+  "license": "MIT",
+  "files": [
+    "dist/src"
+  ],
+  "scripts": {
+    "clear": "rm -rf dist src/types",
+    "lint": "eslint -f unix .",
+    "lint-fix": "eslint -f unix . --fix",
+    "tsc": "tsc",
+    "compile": "typechain --target ethers-v5 --out-dir src/types 'abis/**/*.json'",
+    "watch-tsc": "tsc -w --preserveWatchOutput"
+  },
+  "devDependencies": {
+    "typechain": "^8.3.2"
+  }
+}

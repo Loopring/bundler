@@ -1,9 +1,9 @@
-import { AccountDeployedEvent, UserOperationEventEvent } from '@account-abstraction/contracts/dist/types/EntryPoint'
+import { AccountDeployedEvent, UserOperationEventEvent } from '@account-abstraction/contracts/dist/src/types/EntryPoint'
 import { ReputationManager } from './ReputationManager'
-import { EntryPoint } from '@account-abstraction/sdk'
+import { EntryPoint } from '@account-abstraction/contracts'
 import Debug from 'debug'
-import { SignatureAggregatorChangedEvent } from '@account-abstraction/contracts/types/EntryPoint'
-import { TypedEvent } from '@account-abstraction/contracts/dist/types/common'
+import { SignatureAggregatorChangedEvent } from '@account-abstraction/contracts/src/types/EntryPoint'
+import { TypedEvent } from '@account-abstraction/contracts/dist/src/types/common'
 import { MempoolManager } from './MempoolManager'
 
 const debug = Debug('aa.events')

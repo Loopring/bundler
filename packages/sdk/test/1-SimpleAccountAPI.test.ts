@@ -1,6 +1,7 @@
 import {
   EntryPoint,
   EntryPoint__factory,
+  WalletFactory__factory as
   SimpleAccountFactory__factory,
   UserOperationStruct
 } from '@account-abstraction/contracts'

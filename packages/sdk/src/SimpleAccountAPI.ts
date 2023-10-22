@@ -1,8 +1,9 @@
 import { BigNumber, BigNumberish } from 'ethers'
 import {
-  SimpleAccount,
-  SimpleAccount__factory, SimpleAccountFactory,
-  SimpleAccountFactory__factory
+  SmartWalletV3 as SimpleAccount,
+  SmartWalletV3__factory as SimpleAccount__factory,
+  WalletFactory as SimpleAccountFactory,
+  WalletFactory__factory as SimpleAccountFactory__factory
 } from '@account-abstraction/contracts'
 
 import { arrayify, hexConcat } from 'ethers/lib/utils'
@@ -69,8 +70,9 @@ export class SimpleAccountAPI extends BaseAccountAPI {
       }
     }
     return hexConcat([
-      this.factory.address,
-      this.factory.interface.encodeFunctionData('createAccount', [await this.owner.getAddress(), this.index])
+      this.factory.address
+      // TODO(encode createWallet)
+      // this.factory.interface.encodeFunctionData('createWallet', [await this.owner.getAddress(), this.index])
     ])
   }
 
@@ -79,7 +81,7 @@ export class SimpleAccountAPI extends BaseAccountAPI {
       return BigNumber.from(0)
     }
     const accountContract = await this._getAccountContract()
-    return await accountContract.getNonce()
+    return await accountContract.nonce()
   }
 
   /**
@@ -91,11 +93,12 @@ export class SimpleAccountAPI extends BaseAccountAPI {
   async encodeExecute (target: string, value: BigNumberish, data: string): Promise<string> {
     const accountContract = await this._getAccountContract()
     return accountContract.interface.encodeFunctionData(
-      'execute',
+      'callContract',
       [
         target,
         value,
-        data
+        data,
+        false
       ])
   }
 

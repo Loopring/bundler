@@ -2,7 +2,7 @@ import { BigNumber, BigNumberish, Contract } from 'ethers'
 import {
   SmartWalletV3 as LoopringAccount,
   SmartWalletV3__factory as LoopringAccount__factory
-} from './typechain'
+} from '@account-abstraction/contracts'
 
 import { arrayify } from 'ethers/lib/utils'
 import { Signer } from '@ethersproject/abstract-signer'

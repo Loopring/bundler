@@ -1,4 +1,5 @@
-import { EntryPoint, calcPreVerificationGas } from '@account-abstraction/sdk'
+import { calcPreVerificationGas } from '@account-abstraction/sdk'
+import { EntryPoint } from '@account-abstraction/contracts'
 import { ReputationManager } from './ReputationManager'
 import { BigNumber, BigNumberish, BytesLike, ethers } from 'ethers'
 import { requireCond, RpcError } from '../utils'

@@ -9,13 +9,12 @@
     "README.md"
   ],
   "scripts": {
-    "clear": "rm -rf dist artifacts cache",
+    "clear": "rm -rf dist",
     "lint": "eslint -f unix .",
     "lint-fix": "eslint -f unix . --fix",
     "test": "hardhat test",
     "hardhat-test": "hardhat test",
     "tsc": "tsc",
-    "compile": "typechain --target ethers-v5 --out-dir src/typechain 'abis/**/*.json'",
     "watch-tsc": "tsc -w --preserveWatchOutput"
   },
   "dependencies": {

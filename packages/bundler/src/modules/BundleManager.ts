@@ -1,4 +1,4 @@
-import { EntryPoint } from '@account-abstraction/sdk'
+import { EntryPoint } from '@account-abstraction/contracts'
 import { MempoolManager } from './MempoolManager'
 import { ValidateUserOpResult, ValidationManager } from './ValidationManager'
 import { BigNumber, BigNumberish } from 'ethers'

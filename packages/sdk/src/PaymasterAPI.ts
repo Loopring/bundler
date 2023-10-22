@@ -1,6 +1,5 @@
-import { UserOperationStruct } from '@account-abstraction/contracts'
+import { UserOperationStruct, VerifyingPaymaster__factory, VerifyingPaymaster } from '@account-abstraction/contracts'
 import { BigNumberish, utils, Signer } from 'ethers'
-import { VerifyingPaymaster__factory, VerifyingPaymaster } from './typechain'
 
 export interface PaymasterParams {
   paymaster: string

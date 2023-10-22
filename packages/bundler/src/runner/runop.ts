@@ -8,17 +8,16 @@
 import * as dotenv from 'dotenv'
 import { BigNumber, Signer, Wallet, ethers } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { SimpleAccountFactory__factory } from '@account-abstraction/contracts'
 import { formatEther } from 'ethers/lib/utils'
 import { Command } from 'commander'
-import { erc4337RuntimeVersion, getUserOpHash } from '@account-abstraction/utils'
+import { WalletFactory__factory as SimpleAccountFactory__factory, SmartWalletV3__factory, EntryPoint, EntryPoint__factory } from '@account-abstraction/contracts'
+import { erc4337RuntimeVersion } from '@account-abstraction/utils'
 import {
-  DeterministicDeployer, HttpRpcClient,
+  DeterministicDeployer,
+  HttpRpcClient,
   LoopringAccountAPI as SimpleAccountAPI,
   PaymasterOption, PaymasterAPI,
-  EntryPoint, EntryPoint__factory,
-  ApprovalOption, GuardianAPI, ActionType,
-  SmartWalletV3__factory
+  ApprovalOption, GuardianAPI, ActionType
   // SmartWalletV3, VerifyingPaymaster, VerifyingPaymaster__factory,
   // calcPreVerificationGas, USDT__factory
 } from '@account-abstraction/sdk'
@@ -26,7 +25,7 @@ import { getNetworkProvider } from '../Config'
 
 dotenv.config()
 
-const ENTRY_POINT = '0xe6ac2E178d07A857427a3B6744606AdCaA891e5c'
+const ENTRY_POINT = '0x7bc9bf3C19f06367EC25DfD02debde100D4F5605'
 const PAYMASTER = '0x27a706a09A498dA1A4C21E431fB75b7835a6299F'
 const SMARTWALLET_IMPL = '0x34be5d12c93Eee6312237B6F2875b097B76f83E4'
 
@@ -102,40 +101,13 @@ class Runner {
     return e
   }
 
-  async runUserOpV2(){
-      const userop = 
-          {
-              "callData":"0xb9806d9900000000000000000000000000000000000000000000000000000000000000000000000000000000000000002ba9ef8b6c1f8ef248105009323c1c37a669d7c200000000000000000000000000000000000000000000000000005af3107a400000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000023078000000000000000000000000000000000000000000000000000000000000",
-              "callGasLimit":"0xff",
-              "initCode":"0x",
-              "maxFeePerGas":"0xf",
-              "maxPriorityFeePerGas":"0xff",
-              "nonce":"0x18b4ac2fc59",
-              "paymasterAndData":"0x",
-              "preVerificationGas":"0xff",
-              "sender":"0x1caf701da2d5f636faa823eabfe61981bc94d297",
-              "signature":"0x",
-              "verificationGasLimit":"0xff"
-          };
-    
-      const signedUserOp = await this.accountApi.signUserOp(userop);
-    const estimatedGas = await this.bundlerProvider.estimateUserOpGas(signedUserOp)
-    console.log(estimatedGas)
-    // try {
-      // const userOpHash = await this.bundlerProvider.sendUserOpToBundler(signedUserOp)
-      // const txid = await this.accountApi.getUserOpReceipt(userOpHash)
-      // console.log('reqId', userOpHash, 'txid=', txid)
-    // } catch (e: any) {
-      // throw this.parseExpectedGas(e)
-    // }
-    }
-
   async runUserOp (target: string, data: string, paymasterOption?: PaymasterOption, approvalOption?: ApprovalOption): Promise<void> {
     const signedUserOp = await this.accountApi.createSignedUserOp({
       target,
       data
     }, paymasterOption, approvalOption)
-    
+    // const estimatedGas = await this.bundlerProvider.estimateUserOpGas(signedUserOp)
+    // console.log(estimatedGas)
 
     try {
       const userOpHash = await this.bundlerProvider.sendUserOpToBundler(signedUserOp)
@@ -194,29 +166,12 @@ async function main (): Promise<void> {
     validUntil: 0,
     action_type: ActionType.ApproveToken
   }
-  // const data = SmartWalletV3__factory.createInterface().encodeFunctionData('approveTokenWA', [payToken, PAYMASTER, ethers.constants.MaxUint256])
-  // const userop = {
-    // blockNumber: 0,
-    // callData: '0xb9806d990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400403033c3ea8b7e405c5f6af2d8a11dd0076ed000000000000000000000000000000000000000000000000000009184e72a00000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000023078000000000000000000000000000000000000000000000000000000000000',
-    // callGasLimit: '0x249f0',
-    // initCode: '0x',
-    // maxFeePerGas: '0x1dcd6500',
-    // maxPriorityFeePerGas: '0x1dcd6500',
-    // nonce: '0x18b432e3ead',
-    // paymasterAndData: '0x',
-    // preVerificationGas: '0x11170',
-    // sender: '0x400239ce32a51711870f4b3ab40a90a2b2cb6c04',
-    // signature: '0x50f30cd0f1f0e033bb363dd2b8627b3e5813b9148838536564b85e0ed8e193931b28a9edbd572928ca38790707dc6d28924d5f8bc85394b1dcdff0280b4c2b3d1c',
-    // verificationGasLimit: '0x33450'
-  // }
-  await client.runUserOpV2()
-  // const { chainId } = await provider.getNetwork()
-  // console.log(getUserOpHash(userop, ENTRY_POINT, chainId)
+  const data = SmartWalletV3__factory.createInterface().encodeFunctionData('approveTokenWA', [payToken, PAYMASTER, ethers.constants.MaxUint256])
   // const data = USDT__factory.createInterface().encodeFunctionData('balanceOf', [addr])
   // const data = keccak256(Buffer.from('entryPoint()')).slice(0, 10)
-  // console.log('data=', data)
-  // await client.runUserOp(addr, userop.callData, paymasterOption, approvalOption)
-  // console.log('after run1')
+  console.log('data=', data)
+  await client.runUserOp(addr, data, paymasterOption, approvalOption)
+  console.log('after run1')
   // client.accountApi.overheads!.perUserOp = 30000
   // await client.runUserOp(dest, data, paymasterOption, signer)
   // console.log('after run2')

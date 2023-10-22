@@ -28,7 +28,7 @@ contract TracerTest {
 
     function doNothing() public {}
 
-    function callTimeStamp() public returns (uint) {
+    function callTimeStamp() public view returns (uint) {
         return block.timestamp;
     }
 
@@ -39,11 +39,11 @@ contract TracerTest {
 
     event Keccak(bytes input, bytes32 output);
 
-    function revertWithMessage() external {
+    function revertWithMessage() external pure {
         revert ("revert message");
     }
 
-    function testCallGas() public returns (uint) {
+    function testCallGas() public view returns (uint) {
         return gasleft();
     }
 
