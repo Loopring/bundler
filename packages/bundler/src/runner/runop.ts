@@ -25,9 +25,9 @@ import { getNetworkProvider } from '../Config'
 
 dotenv.config()
 
-const ENTRY_POINT = '0x7bc9bf3C19f06367EC25DfD02debde100D4F5605'
-const PAYMASTER = '0x27a706a09A498dA1A4C21E431fB75b7835a6299F'
-const SMARTWALLET_IMPL = '0x34be5d12c93Eee6312237B6F2875b097B76f83E4'
+const ENTRY_POINT = process.env.ENTRYPOINT_ADDR as string
+const PAYMASTER = process.env.PAYMASTER_ADDR as string
+const SMARTWALLET_IMPL = process.env.SMARTWALLET_IMPL_ADDR as string
 
 class Runner {
   bundlerProvider!: HttpRpcClient
@@ -106,8 +106,8 @@ class Runner {
       target,
       data
     }, paymasterOption, approvalOption)
-    // const estimatedGas = await this.bundlerProvider.estimateUserOpGas(signedUserOp)
-    // console.log(estimatedGas)
+    const estimatedGas = await this.bundlerProvider.estimateUserOpGas(signedUserOp)
+    console.log('estimatedGas: ', estimatedGas)
 
     try {
       const userOpHash = await this.bundlerProvider.sendUserOpToBundler(signedUserOp)
@@ -170,7 +170,7 @@ async function main (): Promise<void> {
   // const data = USDT__factory.createInterface().encodeFunctionData('balanceOf', [addr])
   // const data = keccak256(Buffer.from('entryPoint()')).slice(0, 10)
   console.log('data=', data)
-  await client.runUserOp(addr, data, paymasterOption, approvalOption)
+  await client.runUserOp(payToken, data, paymasterOption, approvalOption)
   console.log('after run1')
   // client.accountApi.overheads!.perUserOp = 30000
   // await client.runUserOp(dest, data, paymasterOption, signer)
