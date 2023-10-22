@@ -9,7 +9,7 @@ import { ValidationManager } from '../src/modules/ValidationManager'
 import { BundleManager, SendBundleReturn } from '../src/modules/BundleManager'
 import { UserOpMethodHandler } from '../src/UserOpMethodHandler'
 import { ethers } from 'hardhat'
-import { EntryPoint, EntryPoint__factory, SimpleAccountFactory__factory } from '@account-abstraction/contracts'
+import { EntryPoint, EntryPoint__factory, WalletFactory__factory as SimpleAccountFactory__factory } from '@account-abstraction/contracts'
 import { DeterministicDeployer, SimpleAccountAPI } from '@account-abstraction/sdk'
 import { Signer, Wallet } from 'ethers'
 import { resolveHexlify } from '@account-abstraction/utils'
@@ -38,7 +38,6 @@ describe('#DebugMethodHandler', () => {
       entryPoint: entryPoint.address,
       gasFactor: '0.2',
       minBalance: '0',
-      mnemonic: '',
       network: '',
       port: '3000',
       unsafe: !await isGeth(provider as any),
