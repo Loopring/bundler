@@ -19,5 +19,6 @@ tsconfig.tsbuildinfo
 /packages/bundler/deployments/
 **/dist/
 /packages/bundler/src/types/
+/packages/contracts/src/types/
 yarn-error.log
 .vscode
