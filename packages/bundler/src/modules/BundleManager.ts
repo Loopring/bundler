@@ -162,10 +162,16 @@ export class BundleManager {
 
     const storageMap: StorageMap = {}
     let totalGas = BigNumber.from(0)
+    const feeData = await this.provider.getFeeData()
+    const requiredMaxPriorityFeePerGas = feeData.maxPriorityFeePerGas ?? 0
+    const requiredMaxFeePerGas = feeData.maxFeePerGas ?? 0
     debug('got mempool of ', entries.length)
     // eslint-disable-next-line no-labels
     mainLoop:
     for (const entry of entries) {
+      if (entry.userOp.maxFeePerGas < requiredMaxFeePerGas || entry.userOp.maxPriorityFeePerGas < requiredMaxPriorityFeePerGas) {
+        continue
+      }
       const paymaster = getAddr(entry.userOp.paymasterAndData)
       const factory = getAddr(entry.userOp.initCode)
       const paymasterStatus = this.reputationManager.getStatus(paymaster)
