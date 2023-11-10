@@ -19,6 +19,12 @@ export interface SendBundleReturn {
   userOpHashes: string[]
 }
 
+export interface EIP1559GasPrice{
+  maxFeePerGas: BigNumber
+  maxPriorityFeePerGas: BigNumber
+  baseFeePerGas: BigNumber
+}
+
 export class BundleManager {
   provider: JsonRpcProvider
   signer: JsonRpcSigner
@@ -70,6 +76,24 @@ export class BundleManager {
     await this.eventsManager.handlePastEvents()
   }
 
+  async getEIP1559GasPrice (): Promise<EIP1559GasPrice> {
+    const block = await this.provider.getBlock('pending')
+    const baseFeePerGas = block.baseFeePerGas ?? BigNumber.from(0)
+    // NOTE(fixed maxPriorityFeePerGas returned from ethers getFeeData API is not properly)
+    const maxPriorityFeePerGas = BigNumber.from(await this.provider.send('eth_maxPriorityFeePerGas', []))
+    const maxFeePerGas = baseFeePerGas.add(maxPriorityFeePerGas)
+    return { maxFeePerGas, maxPriorityFeePerGas, baseFeePerGas }
+  }
+
+  checkEnoughGasPrice (userOp: UserOperation, bundlerGasPrice: EIP1559GasPrice): boolean {
+    if (userOp.maxFeePerGas === userOp.maxPriorityFeePerGas) {
+      // legacy mode (for networks that don't support basefee opcode)
+      return userOp.maxFeePerGas >= bundlerGasPrice.maxFeePerGas
+    }
+    return userOp.maxPriorityFeePerGas >= bundlerGasPrice.baseFeePerGas &&
+          userOp.maxFeePerGas >= bundlerGasPrice.maxFeePerGas
+  }
+
   /**
    * submit a bundle.
    * after submitting the bundle, remove all UserOps from the mempool
@@ -77,12 +101,13 @@ export class BundleManager {
    */
   async sendBundle (userOps: UserOperation[], beneficiary: string, storageMap: StorageMap): Promise<SendBundleReturn | undefined> {
     try {
-      const gasPrice = await this.provider.getGasPrice()
+      const { maxFeePerGas, maxPriorityFeePerGas } = await this.getEIP1559GasPrice()
       const tx = await this.entryPoint.populateTransaction.handleOps(userOps, beneficiary, {
         type: 2,
         nonce: await this.signer.getTransactionCount(),
         gasLimit: 10e6,
-        gasPrice
+        maxFeePerGas,
+        maxPriorityFeePerGas
       })
       tx.chainId = this.provider._network.chainId
       const signedTx = await this.signer.signTransaction(tx)
@@ -161,12 +186,12 @@ export class BundleManager {
 
     const storageMap: StorageMap = {}
     let totalGas = BigNumber.from(0)
-    const gasPrice = await this.provider.getGasPrice()
+    const bundlerGasPrice = await this.getEIP1559GasPrice()
     debug('got mempool of ', entries.length)
     // eslint-disable-next-line no-labels
     mainLoop:
     for (const entry of entries) {
-      if (entry.userOp.maxFeePerGas < gasPrice) {
+      if (!this.checkEnoughGasPrice(entry.userOp, bundlerGasPrice)) {
         continue
       }
       const paymaster = getAddr(entry.userOp.paymasterAndData)
