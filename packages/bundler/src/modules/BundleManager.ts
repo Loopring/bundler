@@ -77,13 +77,12 @@ export class BundleManager {
    */
   async sendBundle (userOps: UserOperation[], beneficiary: string, storageMap: StorageMap): Promise<SendBundleReturn | undefined> {
     try {
-      const feeData = await this.provider.getFeeData()
+      const gasPrice = await this.provider.getGasPrice()
       const tx = await this.entryPoint.populateTransaction.handleOps(userOps, beneficiary, {
         type: 2,
         nonce: await this.signer.getTransactionCount(),
         gasLimit: 10e6,
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 0,
-        maxFeePerGas: feeData.maxFeePerGas ?? 0
+        gasPrice
       })
       tx.chainId = this.provider._network.chainId
       const signedTx = await this.signer.signTransaction(tx)
@@ -162,14 +161,12 @@ export class BundleManager {
 
     const storageMap: StorageMap = {}
     let totalGas = BigNumber.from(0)
-    const feeData = await this.provider.getFeeData()
-    const requiredMaxPriorityFeePerGas = feeData.maxPriorityFeePerGas ?? 0
-    const requiredMaxFeePerGas = feeData.maxFeePerGas ?? 0
+    const gasPrice = await this.provider.getGasPrice()
     debug('got mempool of ', entries.length)
     // eslint-disable-next-line no-labels
     mainLoop:
     for (const entry of entries) {
-      if (entry.userOp.maxFeePerGas < requiredMaxFeePerGas || entry.userOp.maxPriorityFeePerGas < requiredMaxPriorityFeePerGas) {
+      if (entry.userOp.maxFeePerGas < gasPrice) {
         continue
       }
       const paymaster = getAddr(entry.userOp.paymasterAndData)
