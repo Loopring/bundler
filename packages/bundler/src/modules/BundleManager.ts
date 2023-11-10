@@ -88,10 +88,10 @@ export class BundleManager {
   checkEnoughGasPrice (userOp: UserOperation, bundlerGasPrice: EIP1559GasPrice): boolean {
     if (userOp.maxFeePerGas === userOp.maxPriorityFeePerGas) {
       // legacy mode (for networks that don't support basefee opcode)
-      return userOp.maxFeePerGas >= bundlerGasPrice.maxFeePerGas
+      return bundlerGasPrice.maxFeePerGas.lt(userOp.maxFeePerGas)
     }
-    return userOp.maxPriorityFeePerGas >= bundlerGasPrice.baseFeePerGas &&
-          userOp.maxFeePerGas >= bundlerGasPrice.maxFeePerGas
+    return bundlerGasPrice.maxPriorityFeePerGas.lt(userOp.maxPriorityFeePerGas) &&
+          bundlerGasPrice.maxFeePerGas.lt(userOp.maxFeePerGas)
   }
 
   /**
@@ -192,6 +192,11 @@ export class BundleManager {
     mainLoop:
     for (const entry of entries) {
       if (!this.checkEnoughGasPrice(entry.userOp, bundlerGasPrice)) {
+        debug(`skipping too low, \
+            maxPriorityFeePerGas: ${BigNumber.from(entry.userOp.maxPriorityFeePerGas).toString()}, \
+            maxFeePerGas: ${BigNumber.from(entry.userOp.maxFeePerGas).toString()} \
+            no more than maxFeePerGas: ${bundlerGasPrice.maxFeePerGas.toString()}, \
+            maxPriorityFeePerGas: ${bundlerGasPrice.maxPriorityFeePerGas.toString()}`)
         continue
       }
       const paymaster = getAddr(entry.userOp.paymasterAndData)

@@ -1,1 +1,1 @@
-yarn run bundler --unsafe
+DEBUG=aa.exec.cron yarn run bundler --unsafe
