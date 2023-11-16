@@ -18,7 +18,13 @@ export interface ApprovalOption {
   action_type: ActionType
 }
 
-async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: ApprovalOption, domain: any, initValue: {userOpHash: string, wallet: string, validUntil: BigNumberish}): Promise<string> {
+export interface Approval {
+  signers: string[]
+  signatures: string[]
+  validUntil: BigNumberish
+}
+
+async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: ApprovalOption, domain: any, initValue: {wallet: string, validUntil: BigNumberish}): Promise<string> {
   switch (approvalOption.action_type) {
     case ActionType.ApproveToken: {
       const result = utils.defaultAbiCoder.decode(['address', 'address', 'uint256'], data)
@@ -28,8 +34,7 @@ async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: A
           { name: 'validUntil', type: 'uint256' },
           { name: 'token', type: 'address' },
           { name: 'to', type: 'address' },
-          { name: 'amount', type: 'uint256' },
-          { name: 'userOpHash', type: 'bytes32' }
+          { name: 'amount', type: 'uint256' }
         ]
       }
       const message = {
@@ -61,7 +66,7 @@ export class GuardianAPI {
     this.wallet = guardianParams.wallet
   }
 
-  async signUserOp (data: BytesLike, userOpHash: string, approvalOption: ApprovalOption): Promise<string> {
+  async signUserOp (data: BytesLike, approvalOption: ApprovalOption): Promise<Approval> {
     const calldata = utils.hexDataSlice(data, 4)
     const { chainId } = await this.provider.getNetwork()
     const domain = {
@@ -77,7 +82,7 @@ export class GuardianAPI {
 
     const signatures = await Promise.all(
       smartWalletOrEOASigners.map(async (g) =>
-        await signTypedData(calldata, g.signer, approvalOption, domain, { wallet: this.wallet, userOpHash, validUntil: approvalOption.validUntil })
+        await signTypedData(calldata, g.signer, approvalOption, domain, { wallet: this.wallet, validUntil: approvalOption.validUntil })
       )
     )
 
@@ -95,15 +100,12 @@ export class GuardianAPI {
       )
     )
 
-    const approval = {
-      signers: sortedSigners,
-      signatures: sortedSignatures,
+    const approval: Approval = {
+      signers: sortedSigners as string[],
+      signatures: sortedSignatures as string[],
       validUntil: approvalOption.validUntil
     }
-    const signature = utils.defaultAbiCoder.encode(
-      ['tuple(address[] signers,bytes[] signatures,uint256 validUntil)'],
-      [approval]
-    )
-    return signature
+
+    return approval
   }
 }

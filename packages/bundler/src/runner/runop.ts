@@ -170,7 +170,7 @@ async function main (): Promise<void> {
   // const data = USDT__factory.createInterface().encodeFunctionData('balanceOf', [addr])
   // const data = keccak256(Buffer.from('entryPoint()')).slice(0, 10)
   console.log('data=', data)
-  await client.runUserOp(payToken, data, paymasterOption, approvalOption)
+  await client.runUserOp(addr, data, paymasterOption, approvalOption)
   console.log('after run1')
   // client.accountApi.overheads!.perUserOp = 30000
   // await client.runUserOp(dest, data, paymasterOption, signer)

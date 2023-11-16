@@ -1,4 +1,4 @@
-import { UserOperationStruct, VerifyingPaymaster__factory, VerifyingPaymaster } from '@account-abstraction/contracts'
+import { UserOperationStruct, LoopringPaymaster__factory, LoopringPaymaster } from '@account-abstraction/contracts'
 import { BigNumberish, utils, Signer } from 'ethers'
 
 export interface PaymasterParams {
@@ -16,11 +16,11 @@ export interface PaymasterOption {
  * an API to external a UserOperation with paymaster info
  */
 export class PaymasterAPI {
-  paymaster: VerifyingPaymaster
+  paymaster: LoopringPaymaster
   paymasterOwner: Signer
 
   constructor (params: PaymasterParams) {
-    this.paymaster = VerifyingPaymaster__factory.connect(params.paymaster, params.paymasterOwner)
+    this.paymaster = LoopringPaymaster__factory.connect(params.paymaster, params.paymasterOwner)
     this.paymasterOwner = params.paymasterOwner
   }
 
@@ -34,9 +34,9 @@ export class PaymasterAPI {
     const payToken = paymasterOption.payToken
     const valueOfEth = paymasterOption.valueOfEth
     const validUntil = paymasterOption.validUntil
-    const packedData = utils.solidityPack(
-      ['address', 'uint256', 'uint256'],
-      [paymasterOption.payToken, valueOfEth, validUntil]
+    const packedData = utils.solidityKeccak256(
+      ['address', 'uint48', 'uint256'],
+      [paymasterOption.payToken, validUntil, valueOfEth]
     )
 
     const newUserOp = {
@@ -48,8 +48,8 @@ export class PaymasterAPI {
 
     const sig = await this.paymasterOwner.signMessage(utils.arrayify(hash))
     const paymasterCalldata = utils.defaultAbiCoder.encode(
-      ['address', 'uint256', 'uint256', 'bytes'],
-      [payToken, valueOfEth, validUntil, sig]
+      ['address', 'uint48', 'uint256', 'bytes'],
+      [payToken, validUntil, valueOfEth, sig]
     )
     return utils.hexConcat([this.paymaster.address, paymasterCalldata])
   }

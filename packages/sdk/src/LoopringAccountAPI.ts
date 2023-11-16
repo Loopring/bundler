@@ -1,7 +1,8 @@
-import { BigNumber, BigNumberish, Contract } from 'ethers'
+import { BigNumber, BigNumberish } from 'ethers'
 import {
   SmartWalletV3 as LoopringAccount,
-  SmartWalletV3__factory as LoopringAccount__factory
+  SmartWalletV3__factory as LoopringAccount__factory,
+  WalletFactory as LoopringAccountFactory
 } from '@account-abstraction/contracts'
 
 import { arrayify } from 'ethers/lib/utils'
@@ -39,7 +40,7 @@ export class LoopringAccountAPI extends BaseAccountAPI {
    */
   accountContract?: LoopringAccount
 
-  factory?: Contract
+  factory?: LoopringAccountFactory
 
   constructor (params: SimpleAccountApiParams) {
     super(params)
@@ -48,7 +49,7 @@ export class LoopringAccountAPI extends BaseAccountAPI {
     this.index = BigNumber.from(params.index ?? 0)
   }
 
-  async _getAccountContract (): Promise<Contract> {
+  async _getAccountContract (): Promise<LoopringAccount> {
     if (this.accountContract == null) {
       this.accountContract = LoopringAccount__factory.connect(await this.getAccountAddress(), this.provider)
     }
@@ -68,8 +69,7 @@ export class LoopringAccountAPI extends BaseAccountAPI {
       return BigNumber.from(0)
     }
     const accountContract = await this._getAccountContract()
-    const nonce = await accountContract.nonce()
-    return nonce.add(1)
+    return await accountContract.getNonce()
   }
 
   /**

@@ -8,7 +8,7 @@ import {
 import { TransactionDetailsForUserOp } from './TransactionDetailsForUserOp'
 import { resolveProperties } from 'ethers/lib/utils'
 import { PaymasterAPI, PaymasterOption } from './PaymasterAPI'
-import { ApprovalOption, GuardianAPI } from './GuardianAPI'
+import { ApprovalOption, GuardianAPI, Approval } from './GuardianAPI'
 import { getUserOpHash, NotPromise, packUserOp } from '@account-abstraction/utils'
 import { calcPreVerificationGas, GasOverheads } from './calcPreVerificationGas'
 
@@ -284,14 +284,21 @@ export abstract class BaseAccountAPI {
    * @param userOp the UserOperation to sign (with signature field ignored)
    */
   async signUserOp (userOp: UserOperationStruct, approvalOption?: ApprovalOption): Promise<UserOperationStruct> {
-    let signature: string
     const userOpHash = await this.getUserOpHash(userOp)
+    let signature: string
+    let approval: Approval
+    const ownerSignature = await this.signUserOpHash(userOpHash)
     if (approvalOption != null && this.guardianAPI != null) {
       const op = await resolveProperties(userOp)
-      signature = await this.guardianAPI.signUserOp(op.callData, userOpHash, approvalOption)
+      approval = await this.guardianAPI.signUserOp(op.callData, approvalOption)
+      signature = ethers.utils.defaultAbiCoder.encode(
+        ['tuple(address[] signers,bytes[] signatures,uint256 validUntil)', 'bytes'],
+        [approval, ownerSignature]
+      )
     } else {
-      signature = await this.signUserOpHash(userOpHash)
+      signature = ownerSignature
     }
+
     return {
       ...userOp,
       signature
