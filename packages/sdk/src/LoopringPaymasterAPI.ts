@@ -1,12 +1,12 @@
 import { UserOperationStruct, LoopringPaymaster__factory, LoopringPaymaster } from '@account-abstraction/contracts'
 import { BigNumberish, utils, Signer } from 'ethers'
 
-export interface PaymasterParams {
+export interface LoopringPaymasterParams {
   paymaster: string
   paymasterOwner: Signer
 }
 
-export interface PaymasterOption {
+export interface LoopringPaymasterOption {
   payToken: string
   valueOfEth: BigNumberish
   validUntil: BigNumberish
@@ -15,11 +15,11 @@ export interface PaymasterOption {
 /**
  * an API to external a UserOperation with paymaster info
  */
-export class PaymasterAPI {
+export class LoopringPaymasterAPI {
   paymaster: LoopringPaymaster
   paymasterOwner: Signer
 
-  constructor (params: PaymasterParams) {
+  constructor (params: LoopringPaymasterParams) {
     this.paymaster = LoopringPaymaster__factory.connect(params.paymaster, params.paymasterOwner)
     this.paymasterOwner = params.paymasterOwner
   }
@@ -30,7 +30,7 @@ export class PaymasterAPI {
    *  paymasterAndData value, which will only be returned by this method..
    * @returns the value to put into the PaymasterAndData, undefined to leave it empty
    */
-  async getPaymasterAndData (userOp: UserOperationStruct, paymasterOption: PaymasterOption): Promise<string | undefined> {
+  async getPaymasterAndData (userOp: UserOperationStruct, paymasterOption: LoopringPaymasterOption): Promise<string | undefined> {
     const payToken = paymasterOption.payToken
     const valueOfEth = paymasterOption.valueOfEth
     const validUntil = paymasterOption.validUntil

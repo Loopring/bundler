@@ -16,8 +16,8 @@ import {
   DeterministicDeployer,
   HttpRpcClient,
   LoopringAccountAPI as SimpleAccountAPI,
-  PaymasterOption, PaymasterAPI,
-  ApprovalOption, GuardianAPI, ActionType
+  LoopringPaymasterOption, LoopringPaymasterAPI,
+  ApprovalOption, LoopringGuardianAPI, ActionType
   // SmartWalletV3, VerifyingPaymaster, VerifyingPaymaster__factory,
   // calcPreVerificationGas, USDT__factory
 } from '@account-abstraction/sdk'
@@ -63,11 +63,11 @@ class Runner {
     // const dep = new DeterministicDeployer(this.provider)
     const accountDeployer = await DeterministicDeployer.getAddress(new SimpleAccountFactory__factory(), 0, [this.entryPointAddress])
     this.bundlerProvider = new HttpRpcClient(this.bundlerUrl, this.entryPointAddress, chainId)
-    const paymasterAPI = new PaymasterAPI({
+    const paymasterAPI = new LoopringPaymasterAPI({
       paymaster: this.paymaster,
       paymasterOwner: this.paymasterOwner
     })
-    const guardianAPI = new GuardianAPI({
+    const guardianAPI = new LoopringGuardianAPI({
       owner: this.accountOwner,
       wallet: accountAddress,
       verifyingContract: SMARTWALLET_IMPL,
@@ -101,7 +101,7 @@ class Runner {
     return e
   }
 
-  async runUserOp (target: string, data: string, paymasterOption?: PaymasterOption, approvalOption?: ApprovalOption): Promise<void> {
+  async runUserOp (target: string, data: string, paymasterOption?: LoopringPaymasterOption, approvalOption?: ApprovalOption): Promise<void> {
     const signedUserOp = await this.accountApi.createSignedUserOp({
       target,
       data
@@ -164,7 +164,8 @@ async function main (): Promise<void> {
   }
   const approvalOption = {
     validUntil: 0,
-    action_type: ActionType.ApproveToken
+    action_type: ActionType.ApproveToken,
+    salt: ethers.utils.randomBytes(32)
   }
   const data = SmartWalletV3__factory.createInterface().encodeFunctionData('approveTokenWA', [payToken, PAYMASTER, ethers.constants.MaxUint256])
   // const data = USDT__factory.createInterface().encodeFunctionData('balanceOf', [addr])
