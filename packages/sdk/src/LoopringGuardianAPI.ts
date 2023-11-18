@@ -38,11 +38,20 @@ export interface Approval {
   salt: BytesLike
 }
 
-async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: ApprovalOption, domain: any, initValue: {wallet: string, validUntil: BigNumberish, salt: BytesLike}): Promise<string> {
+export async function signTypedData (
+  data: BytesLike,
+  signer: Wallet,
+  approvalOption: ApprovalOption,
+  domain: any,
+  initValue: { wallet: string, validUntil: BigNumberish, salt: BytesLike }
+): Promise<string> {
   let message: any
   switch (approvalOption.action_type) {
     case ActionType.ApproveToken: {
-      const result = utils.defaultAbiCoder.decode(['address', 'address', 'uint256'], data)
+      const result = utils.defaultAbiCoder.decode(
+        ['address', 'address', 'uint256'],
+        data
+      )
       const types = {
         approveToken: [
           { name: 'wallet', type: 'address' },
@@ -67,7 +76,10 @@ async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: A
       break
     }
     case ActionType.TransferToken: {
-      const result = utils.defaultAbiCoder.decode(['address', 'address', 'uint256', 'bytes'], data)
+      const result = utils.defaultAbiCoder.decode(
+        ['address', 'address', 'uint256', 'bytes'],
+        data
+      )
 
       const types = {
         transferToken: [
@@ -96,7 +108,10 @@ async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: A
       break
     }
     case ActionType.CallContract: {
-      const result = utils.defaultAbiCoder.decode(['address', 'uint256', 'bytes'], data)
+      const result = utils.defaultAbiCoder.decode(
+        ['address', 'uint256', 'bytes'],
+        data
+      )
       const types = {
         callContract: [
           { name: 'wallet', type: 'address' },
@@ -121,7 +136,10 @@ async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: A
       break
     }
     case ActionType.ApproveThenCallContract: {
-      const result = utils.defaultAbiCoder.decode(['address', 'address', 'uint256', 'uint256', 'bytes'], data)
+      const result = utils.defaultAbiCoder.decode(
+        ['address', 'address', 'uint256', 'uint256', 'bytes'],
+        data
+      )
       const types = {
         approveThenCallContract: [
           { name: 'wallet', type: 'address' },
@@ -213,7 +231,7 @@ async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: A
       break
     }
     case ActionType.AddToWhitelist: {
-      const result = utils.defaultAbiCoder.decode(['address[]'], data)
+      const result = utils.defaultAbiCoder.decode(['address'], data)
       const types = {
         addToWhitelist: [
           { name: 'wallet', type: 'address' },
@@ -276,7 +294,10 @@ async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: A
       break
     }
     case ActionType.Recover: {
-      const result = utils.defaultAbiCoder.decode(['address', 'address[]'], data)
+      const result = utils.defaultAbiCoder.decode(
+        ['address', 'address[]'],
+        data
+      )
       const types = {
         recover: [
           { name: 'wallet', type: 'address' },
@@ -317,7 +338,11 @@ async function signTypedData (data: BytesLike, signer: Wallet, approvalOption: A
       break
     }
   }
-  return await signer._signTypedData(message.domain, message.types, message.value)
+  return await signer._signTypedData(
+    message.domain,
+    message.types,
+    message.value
+  )
 }
 
 export class LoopringGuardianAPI {

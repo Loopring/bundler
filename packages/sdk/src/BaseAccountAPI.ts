@@ -292,7 +292,7 @@ export abstract class BaseAccountAPI {
       const op = await resolveProperties(userOp)
       approval = await this.guardianAPI.signUserOp(op.callData, approvalOption)
       signature = ethers.utils.defaultAbiCoder.encode(
-        ['tuple(address[] signers,bytes[] signatures,uint256 validUntil)', 'bytes'],
+        ['tuple(address[] signers,bytes[] signatures,uint256 validUntil,bytes32 salt)', 'bytes'],
         [approval, ownerSignature]
       )
     } else {
