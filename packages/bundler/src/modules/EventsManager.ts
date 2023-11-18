@@ -24,9 +24,9 @@ export class EventsManager {
    * automatically listen to all UserOperationEvent events
    */
   initEventListener (): void {
-    this.entryPoint.on(this.entryPoint.filters.UserOperationEvent(), (...args) => {
+    this.entryPoint.on(this.entryPoint.filters.UserOperationEvent(), (...args: any[]) => {
       const ev = args.slice(-1)[0]
-      void this.handleEvent(ev as any)
+      void this.handleEvent(ev)
     })
   }
 
@@ -35,7 +35,7 @@ export class EventsManager {
    */
   async handlePastEvents (): Promise<void> {
     if (this.lastBlock === undefined) {
-      this.lastBlock = Math.max(1, await this.entryPoint.provider.getBlockNumber() - 10)
+      this.lastBlock = Math.max(1, await this.entryPoint.provider.getBlockNumber() - 30)
     }
     const events = await this.entryPoint.queryFilter({ address: this.entryPoint.address }, this.lastBlock)
     for (const ev of events) {
