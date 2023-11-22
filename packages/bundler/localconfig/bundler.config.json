@@ -1,7 +1,7 @@
 {
   "gasFactor": "1",
   "port": "3000",
-  "network": "https://eth-goerli.g.alchemy.com/v2/Vf2BpEUqjAj4fV8pZ6hFXuyNLAFDb0s2",
+  "network": "http://3.12.47.8:8545",
   "entryPoint": "0xe6ac2E178d07A857427a3B6744606AdCaA891e5c",
   "beneficiary": "0xFD43b9Cbd369EDE626116d6C03dCda567fc04520",
   "minBalance": "1",
