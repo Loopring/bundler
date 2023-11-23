@@ -167,7 +167,9 @@ export class UserOpMethodHandler {
 
   async _getUserOperationEvent (userOpHash: string): Promise<UserOperationEventEvent> {
     // TODO: eth_getLogs is throttled. must be acceptable for finding a UserOperation by hash
-    const event = await this.entryPoint.queryFilter(this.entryPoint.filters.UserOperationEvent(userOpHash))
+    // hardcode here, to find events among the latest 200000 blocks
+    const fromBlock = Math.max(1, await this.entryPoint.provider.getBlockNumber() - 200000)
+    const event = await this.entryPoint.queryFilter(this.entryPoint.filters.UserOperationEvent(userOpHash), fromBlock)
     return event[0]
   }
 
