@@ -1,7 +1,7 @@
 {
   "gasFactor": "1",
   "port": "3000",
-  "network": "http://3.12.47.8:8545",
+  "network": "https://mainnet.infura.io/v3/618d99659b2641cb852a1477eba61790",
   "entryPoint": "0xe6ac2E178d07A857427a3B6744606AdCaA891e5c",
   "beneficiary": "0xFD43b9Cbd369EDE626116d6C03dCda567fc04520",
   "minBalance": "1",
