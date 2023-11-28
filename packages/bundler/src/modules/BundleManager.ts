@@ -258,6 +258,7 @@ export class BundleManager {
         if (paymasterDeposit[paymaster].lt(validationResult.returnInfo.prefund)) {
           // not enough balance in paymaster to pay for all UserOps
           // (but it passed validation, so it can sponsor them separately
+          debug(`skip due to no enough balance for paymaster: ${paymaster}`)
           continue
         }
         stakedEntityCount[paymaster] = (stakedEntityCount[paymaster] ?? 0) + 1
