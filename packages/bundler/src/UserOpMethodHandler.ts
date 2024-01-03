@@ -3,15 +3,12 @@ import { Log, Provider } from '@ethersproject/providers'
 
 import { BundlerConfig } from './BundlerConfig'
 import { resolveProperties } from 'ethers/lib/utils'
-import { deepHexlify, erc4337RuntimeVersion } from '@account-abstraction/utils'
-import { EntryPoint, UserOperationStruct } from '@account-abstraction/contracts'
 import { UserOperationEventEvent } from '@account-abstraction/contracts/dist/src/types/EntryPoint'
+import { UserOperation, deepHexlify, erc4337RuntimeVersion, requireCond, RpcError, tostr, getAddr, ValidationErrors } from '@account-abstraction/utils'
+import { UserOperationStruct, EntryPoint } from '@account-abstraction/contracts'
 import { calcPreVerificationGas } from '@account-abstraction/sdk'
-import { requireCond, RpcError, tostr } from './utils'
 import { ExecutionManager } from './modules/ExecutionManager'
-import { getAddr } from './modules/moduleUtils'
 import { UserOperationByHashResponse, UserOperationReceipt } from './RpcTypes'
-import { ExecutionErrors, UserOperation, ValidationErrors } from './modules/Types'
 
 const HEX_REGEX = /^0x[a-fA-F\d]*$/i
 
@@ -94,18 +91,18 @@ export class UserOpMethodHandler {
 
   /**
    * eth_estimateUserOperationGas RPC api.
-   * @param userOp1
+   * @param userOp1 input userOp (may have gas fields missing, so they can be estimated)
    * @param entryPointInput
    */
   async estimateUserOperationGas (userOp1: UserOperationStruct, entryPointInput: string): Promise<EstimateUserOpGasResult> {
     const userOp = {
-      ...await resolveProperties(userOp1),
       // default values for missing fields.
       paymasterAndData: '0x',
       maxFeePerGas: 0,
       maxPriorityFeePerGas: 0,
       preVerificationGas: 0,
-      verificationGasLimit: 10e6
+      verificationGasLimit: 10e6,
+      ...await resolveProperties(userOp1) as any
     }
 
     // todo: checks the existence of parameters, but since we hexlify the inputs, it fails to validate
@@ -133,14 +130,14 @@ export class UserOpMethodHandler {
       data: userOp.callData
     }).then(b => b.toNumber()).catch(err => {
       const message = err.message.match(/reason="(.*?)"/)?.at(1) ?? 'execution reverted'
-      throw new RpcError(message, ExecutionErrors.UserOperationReverted)
+      throw new RpcError(message, ValidationErrors.UserOperationReverted)
     })
     validAfter = BigNumber.from(validAfter)
     validUntil = BigNumber.from(validUntil)
-    if (validUntil === BigNumber.from(0)) {
+    if ((validUntil as BigNumber).eq(0)) {
       validUntil = undefined
     }
-    if (validAfter === BigNumber.from(0)) {
+    if ((validAfter as BigNumber).eq(0)) {
       validAfter = undefined
     }
     const preVerificationGas = calcPreVerificationGas(userOp)

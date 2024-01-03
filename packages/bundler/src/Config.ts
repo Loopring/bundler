@@ -2,8 +2,8 @@ import ow from 'ow'
 import fs from 'fs'
 
 import { BundlerConfig, bundlerConfigDefault, BundlerConfigShape } from './BundlerConfig'
-import { Wallet } from 'ethers'
 import * as dotenv from 'dotenv'
+import { Wallet, Signer } from 'ethers'
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers'
 dotenv.config()
 
@@ -35,7 +35,7 @@ export function getNetworkProvider (url: string): JsonRpcProvider {
   return new JsonRpcProvider(url)
 }
 
-export async function resolveConfiguration (programOpts: any): Promise<{ config: BundlerConfig, provider: BaseProvider, wallet: Wallet }> {
+export async function resolveConfiguration (programOpts: any): Promise<{ config: BundlerConfig, provider: BaseProvider, wallet: Signer }> {
   const commandLineParams = getCommandLineParams(programOpts)
   let fileConfig: Partial<BundlerConfig> = {}
   const configFileName = programOpts.config
@@ -45,11 +45,13 @@ export async function resolveConfiguration (programOpts: any): Promise<{ config:
   const config = mergeConfigs(bundlerConfigDefault, fileConfig, commandLineParams)
   console.log('Merged configuration:', JSON.stringify(config))
 
-  const provider: BaseProvider = config.network === 'hardhat'
+  if (config.network === 'hardhat') {
     // eslint-disable-next-line
-    ? require('hardhat').ethers.provider
-    : getNetworkProvider(config.network)
+    const provider: JsonRpcProvider = require('hardhat').ethers.provider
+    return { config, provider, wallet: provider.getSigner() }
+  }
 
+  const provider: BaseProvider = getNetworkProvider(config.network)
   let wallet: Wallet
   try {
     wallet = new Wallet(process.env.SIGNER_PRIVATE_KEY as string).connect(provider)

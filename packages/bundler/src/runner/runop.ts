@@ -10,7 +10,11 @@ import { BigNumber, Signer, Wallet, ethers } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { formatEther } from 'ethers/lib/utils'
 import { Command } from 'commander'
-import { WalletFactory__factory as SimpleAccountFactory__factory, SmartWalletV3__factory, EntryPoint, EntryPoint__factory } from '@account-abstraction/contracts'
+import {
+  WalletFactory__factory as SimpleAccountFactory__factory, SmartWalletV3__factory, EntryPoint, EntryPoint__factory
+  // USDT__factory,
+  // SmartWalletV3, VerifyingPaymaster, VerifyingPaymaster__factory,
+} from '@account-abstraction/contracts'
 import { erc4337RuntimeVersion } from '@account-abstraction/utils'
 import {
   DeterministicDeployer,
@@ -18,8 +22,7 @@ import {
   LoopringAccountAPI as SimpleAccountAPI,
   PaymasterOption, PaymasterAPI,
   ApprovalOption, GuardianAPI, ActionType
-  // SmartWalletV3, VerifyingPaymaster, VerifyingPaymaster__factory,
-  // calcPreVerificationGas, USDT__factory
+  // calcPreVerificationGas
 } from '@account-abstraction/sdk'
 import { getNetworkProvider } from '../Config'
 
