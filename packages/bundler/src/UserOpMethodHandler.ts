@@ -100,9 +100,11 @@ export class UserOpMethodHandler {
       paymasterAndData: '0x',
       maxFeePerGas: 0,
       maxPriorityFeePerGas: 0,
+      callGasLimit: 0,
+      ...await resolveProperties(userOp1) as any,
+      // override user input
       preVerificationGas: 0,
-      verificationGasLimit: 10e6,
-      ...await resolveProperties(userOp1) as any
+      verificationGasLimit: 10e6
     }
 
     // todo: checks the existence of parameters, but since we hexlify the inputs, it fails to validate
