@@ -292,6 +292,9 @@ export class ValidationManager {
       'initCode: must contain at least an address',
       ValidationErrors.InvalidFields)
 
+    const maxVerificationGaslimit = 3e6
+    requireCond(userOp.verificationGasLimit <= maxVerificationGaslimit, `verificationGasLimit too high: expected at most${maxVerificationGaslimit}`, ValidationErrors.InvalidFields)
+
     const calcPreVerificationGas1 = calcPreVerificationGas(userOp)
     requireCond(userOp.preVerificationGas >= calcPreVerificationGas1,
       `preVerificationGas too low: expected at least ${calcPreVerificationGas1}`,
