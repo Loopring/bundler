@@ -29,6 +29,8 @@ const THROTTLED_ENTITY_MEMPOOL_COUNT = 4
 
 export class MempoolManager {
   private mempool: MempoolEntry[] = []
+  // check tx expiration
+  private seenAt: Record<string, number> = {}
 
   // count entities in mempool.
   private _entryCount: { [addr: string]: number | undefined } = {}
@@ -58,7 +60,9 @@ export class MempoolManager {
   }
 
   constructor (
-    readonly reputationManager: ReputationManager) {
+    readonly reputationManager: ReputationManager,
+    readonly expirationTTL: number
+  ) {
   }
 
   count (): number {
@@ -106,6 +110,7 @@ export class MempoolManager {
       this.checkMultipleRolesViolation(userOp)
       this.mempool.push(entry)
     }
+    this.seenAt[entry.userOpHash] = Math.round(Date.now() / 1000)
     this.updateSeenStatus(aggregatorInfo?.addr, userOp, senderInfo)
   }
 
@@ -211,6 +216,24 @@ export class MempoolManager {
     return copy
   }
 
+  private checkIfExpired (userOpHash: string): boolean {
+    // TODO(check wield situation)
+    if (this.seenAt[userOpHash] === undefined) {
+      return false
+    }
+    return Math.round(Date.now() / 1000) - this.seenAt[userOpHash] > this.expirationTTL
+  }
+
+  removeExpiredUserops (): void {
+    const copy = Array.from(this.mempool)
+    for (const entry of copy) {
+      if (this.checkIfExpired(entry.userOpHash)) {
+        debug('found expired userop', entry.userOpHash)
+        this.removeUserOp(entry.userOpHash)
+      }
+    }
+  }
+
   _findBySenderNonce (sender: string, nonce: BigNumberish): number {
     for (let i = 0; i < this.mempool.length; i++) {
       const curOp = this.mempool[i].userOp
@@ -265,6 +288,7 @@ export class MempoolManager {
    */
   clearState (): void {
     this.mempool = []
+    this.seenAt = {}
     this._entryCount = {}
   }
 

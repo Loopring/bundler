@@ -19,7 +19,7 @@ import { getNetworkProvider } from '../Config'
 export function initServer (config: BundlerConfig, signer: Signer): [ExecutionManager, EventsManager, ReputationManager, MempoolManager] {
   const entryPoint = EntryPoint__factory.connect(config.entryPoint, signer)
   const reputationManager = new ReputationManager(getNetworkProvider(config.network), BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
-  const mempoolManager = new MempoolManager(reputationManager)
+  const mempoolManager = new MempoolManager(reputationManager, config.expirationTTL)
   const validationManager = new ValidationManager(entryPoint, config.unsafe)
   const eventsManager = new EventsManager(entryPoint, mempoolManager, reputationManager)
   const bundleManager = new BundleManager(entryPoint, eventsManager, mempoolManager, validationManager, reputationManager,

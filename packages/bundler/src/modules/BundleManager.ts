@@ -170,6 +170,8 @@ export class BundleManager {
   }
 
   async createBundle (): Promise<[UserOperation[], StorageMap]> {
+    // remove expired userops manually
+    this.mempoolManager.removeExpiredUserops()
     const entries = this.mempoolManager.getSortedForInclusion()
     const bundle: UserOperation[] = []
 

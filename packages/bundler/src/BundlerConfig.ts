@@ -13,6 +13,7 @@ export interface BundlerConfig {
   unsafe: boolean
   debugRpc?: boolean
   conditionalRpc: boolean
+  expirationTTL: number
 
   whitelist?: string[]
   blacklist?: string[]
@@ -34,6 +35,7 @@ export const BundlerConfigShape = {
   unsafe: ow.boolean,
   debugRpc: ow.optional.boolean,
   conditionalRpc: ow.boolean,
+  expirationTTL: ow.number,
 
   whitelist: ow.optional.array.ofType(ow.string),
   blacklist: ow.optional.array.ofType(ow.string),
