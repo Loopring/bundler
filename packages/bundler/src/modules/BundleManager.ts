@@ -1,18 +1,19 @@
 import { EntryPoint } from '@account-abstraction/contracts'
 import { MempoolManager } from './MempoolManager'
-import { ValidateUserOpResult, ValidationManager } from './ValidationManager'
+import { ValidateUserOpResult, ValidationManager } from '@account-abstraction/validation-manager'
 import { BigNumber, BigNumberish } from 'ethers'
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers'
 import Debug from 'debug'
 import { ReputationManager, ReputationStatus } from './ReputationManager'
 import { Mutex } from 'async-mutex'
 import { GetUserOpHashes__factory } from '../types'
-import { StorageMap, UserOperation } from './Types'
-import { getAddr, mergeStorageMap, runContractScript } from './moduleUtils'
+import { UserOperation, StorageMap, getAddr, mergeStorageMap, runContractScript } from '@account-abstraction/utils'
 import { EventsManager } from './EventsManager'
 import { ErrorDescription } from '@ethersproject/abi/lib/interface'
 
 const debug = Debug('aa.exec.cron')
+
+const THROTTLED_ENTITY_BUNDLE_COUNT = 4
 
 export interface SendBundleReturn {
   transactionHash: string
@@ -169,6 +170,8 @@ export class BundleManager {
   }
 
   async createBundle (): Promise<[UserOperation[], StorageMap]> {
+    // remove expired userops manually
+    this.mempoolManager.removeExpiredUserops()
     const entries = this.mempoolManager.getSortedForInclusion()
     const bundle: UserOperation[] = []
 
@@ -180,9 +183,7 @@ export class BundleManager {
     const senders = new Set<string>()
 
     // all entities that are known to be valid senders in the mempool
-    const knownSenders = entries.map(it => {
-      return it.userOp.sender.toLowerCase()
-    })
+    const knownSenders = this.mempoolManager.getKnownSenders()
 
     const storageMap: StorageMap = {}
     let totalGas = BigNumber.from(0)
@@ -207,11 +208,13 @@ export class BundleManager {
         this.mempoolManager.removeUserOp(entry.userOp)
         continue
       }
-      if (paymaster != null && (paymasterStatus === ReputationStatus.THROTTLED ?? (stakedEntityCount[paymaster] ?? 0) > 1)) {
+      // [SREP-030]
+      if (paymaster != null && (paymasterStatus === ReputationStatus.THROTTLED ?? (stakedEntityCount[paymaster] ?? 0) > THROTTLED_ENTITY_BUNDLE_COUNT)) {
         debug('skipping throttled paymaster', entry.userOp.sender, entry.userOp.nonce)
         continue
       }
-      if (factory != null && (deployerStatus === ReputationStatus.THROTTLED ?? (stakedEntityCount[factory] ?? 0) > 1)) {
+      // [SREP-030]
+      if (factory != null && (deployerStatus === ReputationStatus.THROTTLED ?? (stakedEntityCount[factory] ?? 0) > THROTTLED_ENTITY_BUNDLE_COUNT)) {
         debug('skipping throttled factory', entry.userOp.sender, entry.userOp.nonce)
         continue
       }
@@ -258,6 +261,7 @@ export class BundleManager {
         if (paymasterDeposit[paymaster].lt(validationResult.returnInfo.prefund)) {
           // not enough balance in paymaster to pay for all UserOps
           // (but it passed validation, so it can sponsor them separately
+          debug(`skip due to no enough balance for paymaster: ${paymaster}`)
           continue
         }
         stakedEntityCount[paymaster] = (stakedEntityCount[paymaster] ?? 0) + 1

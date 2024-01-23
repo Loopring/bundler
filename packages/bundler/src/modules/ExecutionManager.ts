@@ -1,11 +1,12 @@
-import { ReputationManager } from './ReputationManager'
-import { clearInterval } from 'timers'
-import { MempoolManager } from './MempoolManager'
-import { BundleManager, SendBundleReturn } from './BundleManager'
 import Debug from 'debug'
-import { ValidationManager } from './ValidationManager'
 import { Mutex } from 'async-mutex'
-import { UserOperation } from './Types'
+import { ValidationManager } from '@account-abstraction/validation-manager'
+import { UserOperation } from '@account-abstraction/utils'
+import { clearInterval } from 'timers'
+
+import { BundleManager, SendBundleReturn } from './BundleManager'
+import { MempoolManager } from './MempoolManager'
+import { ReputationManager } from './ReputationManager'
 
 const debug = Debug('aa.exec')
 
@@ -40,9 +41,11 @@ export class ExecutionManager {
       this.mempoolManager.addUserOp(userOp,
         userOpHash,
         validationResult.returnInfo.prefund,
-        validationResult.senderInfo,
         validationResult.referencedContracts,
-        validationResult.aggregatorInfo?.addr)
+        validationResult.senderInfo,
+        validationResult.paymasterInfo,
+        validationResult.factoryInfo,
+        validationResult.aggregatorInfo)
       await this.attemptBundle(false)
     })
   }

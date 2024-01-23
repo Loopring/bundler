@@ -10,7 +10,11 @@ import { BigNumber, Signer, Wallet, ethers } from 'ethers'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { formatEther } from 'ethers/lib/utils'
 import { Command } from 'commander'
-import { WalletFactory__factory as SimpleAccountFactory__factory, SmartWalletV3__factory, EntryPoint, EntryPoint__factory } from '@account-abstraction/contracts'
+import {
+  WalletFactory__factory as SimpleAccountFactory__factory, SmartWalletV3__factory, EntryPoint, EntryPoint__factory
+  // USDT__factory,
+  // SmartWalletV3, VerifyingPaymaster, VerifyingPaymaster__factory,
+} from '@account-abstraction/contracts'
 import { erc4337RuntimeVersion } from '@account-abstraction/utils'
 import {
   DeterministicDeployer,
@@ -156,7 +160,7 @@ async function main (): Promise<void> {
   const bal = await getBalance(addr)
   console.log('account address', addr, 'deployed=', await isDeployed(addr), 'bal=', formatEther(bal))
 
-  const payToken = '0x116C55AFEaB4f16CcC5e91B563D450A4aE14CA15'
+  const payToken = '0x85E48056F3Dc8899d4B57e21e9EEf2D4c079d5ff'
   const paymasterOption = {
     payToken,
     valueOfEth: ethers.utils.parseUnits('625', 12),
@@ -169,7 +173,7 @@ async function main (): Promise<void> {
   }
   const data = SmartWalletV3__factory.createInterface().encodeFunctionData('approveTokenWA', [payToken, PAYMASTER, ethers.constants.MaxUint256])
   // const data = USDT__factory.createInterface().encodeFunctionData('balanceOf', [addr])
-  // const data = keccak256(Buffer.from('entryPoint()')).slice(0, 10)
+  // const data = ethers.utils.keccak256(Buffer.from('entryPoint()')).slice(0, 10)
   console.log('data=', data)
   await client.runUserOp(addr, data, paymasterOption, approvalOption)
   console.log('after run1')

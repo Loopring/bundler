@@ -18,15 +18,14 @@ import {
   TestRulesAccount,
   TestRulesAccount__factory
 } from '../src/types'
-import { resolveHexlify } from '@account-abstraction/utils'
+import { ValidationManager, supportsDebugTraceCall } from '@account-abstraction/validation-manager'
+import { resolveHexlify, waitFor } from '@account-abstraction/utils'
 import { UserOperationEventEvent } from '@account-abstraction/contracts/dist/types/EntryPoint'
 import { UserOperationReceipt } from '../src/RpcTypes'
 import { ExecutionManager } from '../src/modules/ExecutionManager'
 import { BundlerReputationParams, ReputationManager } from '../src/modules/ReputationManager'
 import { MempoolManager } from '../src/modules/MempoolManager'
-import { ValidationManager } from '../src/modules/ValidationManager'
 import { BundleManager } from '../src/modules/BundleManager'
-import { isGeth, waitFor } from '../src/utils'
 import { UserOpMethodHandler } from '../src/UserOpMethodHandler'
 import { ethers } from 'hardhat'
 import { createSigner } from './testUtils'
@@ -65,7 +64,7 @@ describe('UserOpMethodHandler', function () {
       mnemonic: '',
       network: '',
       port: '3000',
-      unsafe: !await isGeth(provider as any),
+      unsafe: !await supportsDebugTraceCall(provider as any),
       conditionalRpc: false,
       autoBundleInterval: 0,
       autoBundleMempoolSize: 0,
@@ -75,7 +74,7 @@ describe('UserOpMethodHandler', function () {
       minUnstakeDelay: 0
     }
 
-    const repMgr = new ReputationManager(BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
+    const repMgr = new ReputationManager(provider, BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
     mempoolMgr = new MempoolManager(repMgr)
     const validMgr = new ValidationManager(entryPoint, repMgr, config.unsafe)
     const evMgr = new EventsManager(entryPoint, mempoolMgr, repMgr)
@@ -111,11 +110,19 @@ describe('UserOpMethodHandler', function () {
       })
     })
     it('estimateUserOperationGas should estimate even without eth', async () => {
+      // fail without gas
       const op = await smartAccountAPI.createSignedUserOp({
         target,
         data: '0xdeadface'
       })
-      const ret = await methodHandler.estimateUserOperationGas(await resolveHexlify(op), entryPoint.address)
+      expect(await methodHandler.estimateUserOperationGas(await resolveHexlify(op), entryPoint.address).catch(e => e.message)).to.eql('AA21 didn\'t pay prefund')
+      // should estimate with gasprice=0
+      const op1 = await smartAccountAPI.createSignedUserOp({
+        maxFeePerGas: 0,
+        target,
+        data: '0xdeadface'
+      })
+      const ret = await methodHandler.estimateUserOperationGas(await resolveHexlify(op1), entryPoint.address)
       // verification gas should be high - it creates this wallet
       expect(ret.verificationGasLimit).to.be.closeTo(300000, 100000)
       // execution should be quite low.

@@ -3,13 +3,13 @@ import { parseEther } from 'ethers/lib/utils'
 import { assert, expect } from 'chai'
 import { BundlerReputationParams, ReputationManager } from '../src/modules/ReputationManager'
 import { AddressZero, getUserOpHash } from '@account-abstraction/utils'
-import { isGeth } from '../src/utils'
+
+import { ValidationManager, supportsDebugTraceCall } from '@account-abstraction/validation-manager'
 import { DeterministicDeployer } from '@account-abstraction/sdk'
 import { MempoolManager } from '../src/modules/MempoolManager'
 import { BundleManager } from '../src/modules/BundleManager'
 import { ethers } from 'hardhat'
 import { BundlerConfig } from '../src/BundlerConfig'
-import { ValidationManager } from '../src/modules/ValidationManager'
 import { TestFakeWalletToken__factory } from '../src/types'
 import { UserOperation } from '../src/modules/Types'
 import { UserOpMethodHandler } from '../src/UserOpMethodHandler'
@@ -36,7 +36,7 @@ describe('#BundlerManager', () => {
       minBalance: '0',
       network: '',
       port: '3000',
-      unsafe: !await isGeth(provider as any),
+      unsafe: !await supportsDebugTraceCall(provider as any),
       autoBundleInterval: 0,
       autoBundleMempoolSize: 0,
       maxBundleGas: 5e6,
@@ -45,7 +45,7 @@ describe('#BundlerManager', () => {
       minUnstakeDelay: 0
     }
 
-    const repMgr = new ReputationManager(BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
+    const repMgr = new ReputationManager(provider, BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
     const mempoolMgr = new MempoolManager(repMgr)
     const validMgr = new ValidationManager(entryPoint, repMgr, config.unsafe)
     bm = new BundleManager(entryPoint, mempoolMgr, validMgr, repMgr, config.beneficiary, parseEther(config.minBalance), config.maxBundleGas)
@@ -85,7 +85,7 @@ describe('#BundlerManager', () => {
         minBalance: '0',
         network: '',
         port: '3000',
-        unsafe: !await isGeth(provider as any),
+        unsafe: !await supportsDebugTraceCall(provider as any),
         conditionalRpc: false,
         autoBundleInterval: 0,
         autoBundleMempoolSize: 0,
@@ -94,7 +94,7 @@ describe('#BundlerManager', () => {
         minStake: '0',
         minUnstakeDelay: 0
       }
-      const repMgr = new ReputationManager(BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
+      const repMgr = new ReputationManager(provider, BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
       const mempoolMgr = new MempoolManager(repMgr)
       const validMgr = new ValidationManager(_entryPoint, repMgr, config.unsafe)
       const evMgr = new EventsManager(_entryPoint, mempoolMgr, repMgr)
@@ -112,7 +112,7 @@ describe('#BundlerManager', () => {
     })
 
     it('should not include a UserOp that accesses the storage of a different known sender', async function () {
-      if (!await isGeth(ethers.provider)) {
+      if (!await supportsDebugTraceCall(ethers.provider)) {
         console.log('WARNING: opcode banning tests can only run with geth')
         this.skip()
       }

@@ -1,29 +1,36 @@
 import { EntryPoint, EntryPoint__factory } from '@account-abstraction/contracts'
+import { assert, expect } from 'chai'
 import { defaultAbiCoder, hexConcat, hexlify, keccak256, parseEther } from 'ethers/lib/utils'
 import { ethers } from 'hardhat'
-import { expect } from 'chai'
+
+import { AddressZero, decodeErrorReason, toBytes32 } from '@account-abstraction/utils'
 import {
+  ValidateUserOpResult,
+  ValidationManager,
+  checkRulesViolations,
+  supportsDebugTraceCall
+} from '@account-abstraction/validation-manager'
+
+import {
+  TestCoin,
+  TestCoin__factory,
   TestOpcodesAccount,
-  TestOpcodesAccount__factory,
   TestOpcodesAccountFactory,
   TestOpcodesAccountFactory__factory,
+  TestOpcodesAccount__factory,
+  TestRecursionAccount__factory,
   TestRulesAccount,
-  TestRulesAccount__factory,
   TestRulesAccountFactory__factory,
-  TestStorageAccount__factory,
+  TestRulesAccount__factory,
+  TestStorageAccount,
   TestStorageAccountFactory,
   TestStorageAccountFactory__factory,
-  TestStorageAccount,
-  TestCoin,
-  TestCoin__factory
+  TestStorageAccount__factory,
+  TestTimeRangeAccountFactory,
+  TestTimeRangeAccountFactory__factory
 } from '../src/types'
-import { ValidateUserOpResult, ValidationManager } from '../src/modules/ValidationManager'
 import { ReputationManager } from '../src/modules/ReputationManager'
-import { toBytes32 } from '../src/modules/moduleUtils'
-import { AddressZero, decodeErrorReason } from '@account-abstraction/utils'
-import { isGeth } from '../src/utils'
-import { TestRecursionAccount__factory } from '../src/types/factories/contracts/tests/TestRecursionAccount__factory'
-// import { resolveNames } from './testUtils'
+
 import { UserOperation } from '../src/modules/Types'
 
 const cEmptyUserOp: UserOperation = {
@@ -127,16 +134,16 @@ describe('#ValidationManager', () => {
     await rulesFactory.create('')
     await entryPoint.depositTo(rulesAccount.address, { value: parseEther('1') })
 
-    const reputationManager = new ReputationManager({
+    const reputationManager = new ReputationManager(provider, {
       minInclusionDenominator: 1,
       throttlingSlack: 1,
       banSlack: 1
     },
     parseEther('0'), 0)
-    const unsafe = !await isGeth(provider)
+    const unsafe = !await supportsDebugTraceCall(provider)
     vm = new ValidationManager(entryPoint, reputationManager, unsafe)
 
-    if (!await isGeth(ethers.provider)) {
+    if (!await supportsDebugTraceCall(ethers.provider)) {
       console.log('WARNING: opcode banning tests can only run with geth')
       this.skip()
     }
@@ -208,6 +215,51 @@ describe('#ValidationManager', () => {
       expect(await testExistingUserOp('struct-1')
         .catch(e => e.message)
       ).match(/account has forbidden read/)
+    })
+  })
+
+  describe('time-range', () => {
+    let testTimeRangeAccountFactory: TestTimeRangeAccountFactory
+
+    // note: parameters are "js time", not "unix time"
+    async function testTimeRangeUserOp (validAfterMs: number, validUntilMs: number): Promise<void> {
+      const userOp = await createTestUserOp('', undefined, undefined, testTimeRangeAccountFactory.address)
+      userOp.preVerificationGas = Math.floor(validAfterMs / 1000)
+      userOp.maxPriorityFeePerGas = Math.floor(validUntilMs / 1000)
+      console.log('=== validAfter: ', userOp.preVerificationGas, 'validuntil', userOp.maxPriorityFeePerGas)
+      await vm.validateUserOp(userOp)
+    }
+
+    before(async () => {
+      testTimeRangeAccountFactory = await new TestTimeRangeAccountFactory__factory(ethersSigner).deploy()
+    })
+
+    it('should accept request with future validUntil', async () => {
+      await testTimeRangeUserOp(0, Date.now() + 60000)
+    })
+    it('should accept request with past validAfter', async () => {
+      await testTimeRangeUserOp(10000, 0)
+    })
+    it('should accept request with valid range validAfter..validTo', async () => {
+      await testTimeRangeUserOp(10000, Date.now() + 60000)
+    })
+
+    it('should reject request with past validUntil', async () => {
+      await expect(
+        testTimeRangeUserOp(0, Date.now() - 1000)
+      ).to.be.rejectedWith('already expired')
+    })
+
+    it('should reject request with short validUntil', async () => {
+      await expect(
+        testTimeRangeUserOp(0, Date.now() + 25000)
+      ).to.be.rejectedWith('expires too soon')
+    })
+
+    it('should reject request with future validAfter', async () => {
+      await expect(
+        testTimeRangeUserOp(Date.now() * 2, 0)
+      ).to.be.rejectedWith('future ')
     })
   })
 
@@ -313,5 +365,20 @@ describe('#ValidationManager', () => {
     expect(await testUserOp('oog', undefined, storageFactory.interface.encodeFunctionData('create', [0, '']), storageFactory.address)
       .catch(e => e.message)
     ).to.match(/account internally reverts on oog/)
+  })
+
+  describe('ValidationPackage', () => {
+    it('should pass for a transaction that does not violate the rules', async () => {
+      const userOp = await createTestUserOp()
+      const res = await checkRulesViolations(provider, userOp, entryPoint.address)
+      assert.equal(res.returnInfo.sigFailed, false)
+    })
+
+    it('should throw for a transaction that violates the rules', async () => {
+      const userOp = await createTestUserOp('coinbase')
+      await expect(
+        checkRulesViolations(provider, userOp, entryPoint.address)
+      ).to.be.rejectedWith('account uses banned opcode: COINBASE')
+    })
   })
 })

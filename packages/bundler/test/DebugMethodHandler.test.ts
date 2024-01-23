@@ -2,10 +2,9 @@ import { DebugMethodHandler } from '../src/DebugMethodHandler'
 import { ExecutionManager } from '../src/modules/ExecutionManager'
 import { BundlerReputationParams, ReputationManager } from '../src/modules/ReputationManager'
 import { BundlerConfig } from '../src/BundlerConfig'
-import { isGeth } from '../src/utils'
 import { parseEther } from 'ethers/lib/utils'
 import { MempoolManager } from '../src/modules/MempoolManager'
-import { ValidationManager } from '../src/modules/ValidationManager'
+import { ValidationManager, supportsDebugTraceCall } from '@account-abstraction/validation-manager'
 import { BundleManager, SendBundleReturn } from '../src/modules/BundleManager'
 import { UserOpMethodHandler } from '../src/UserOpMethodHandler'
 import { ethers } from 'hardhat'
@@ -40,7 +39,7 @@ describe('#DebugMethodHandler', () => {
       minBalance: '0',
       network: '',
       port: '3000',
-      unsafe: !await isGeth(provider as any),
+      unsafe: !await supportsDebugTraceCall(provider as any),
       conditionalRpc: false,
       autoBundleInterval: 0,
       autoBundleMempoolSize: 0,
@@ -50,7 +49,7 @@ describe('#DebugMethodHandler', () => {
       minUnstakeDelay: 0
     }
 
-    const repMgr = new ReputationManager(BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
+    const repMgr = new ReputationManager(provider, BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
     const mempoolMgr = new MempoolManager(repMgr)
     const validMgr = new ValidationManager(entryPoint, repMgr, config.unsafe)
     const eventsManager = new EventsManager(entryPoint, mempoolMgr, repMgr)

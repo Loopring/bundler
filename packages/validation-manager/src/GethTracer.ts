@@ -1,16 +1,18 @@
-import { JsonRpcProvider, TransactionRequest } from '@ethersproject/providers'
+import Debug from 'debug'
 import { BigNumber } from 'ethers'
 import { Deferrable } from '@ethersproject/properties'
+import { JsonRpcProvider, TransactionRequest } from '@ethersproject/providers'
 import { resolveProperties } from 'ethers/lib/utils'
 // from:https://geth.ethereum.org/docs/rpc/ns-debug#javascript-based-tracing
-//
+
+const debug = Debug('aa.tracer')
 
 /**
  * a function returning a LogTracer.
  * the function's body must be "{ return {...} }"
  * the body is executed as "geth" tracer, and thus must be self-contained (no external functions or references)
  * may only reference external functions defined by geth (see go-ethereum/eth/tracers/js): toHex, toWord, isPrecompiled, slice, toString(16)
- * (its OK if original function was in typescript: we extract its value as javascript
+ * (it is OK if original function was in typescript: we extract its value as javascript
  */
 type LogTracerFunc = () => LogTracer
 
@@ -19,8 +21,8 @@ export async function debug_traceCall (provider: JsonRpcProvider, tx: Deferrable
   const tx1 = await resolveProperties(tx)
   const traceOptions = tracer2string(options)
   const ret = await provider.send('debug_traceCall', [tx1, 'latest', traceOptions]).catch(e => {
-    console.log('ex=', e.message)
-    console.log('tracer=', traceOptions.tracer?.toString().split('\n').map((line, index) => `${index + 1}: ${line}`).join('\n'))
+    debug('ex=', e.error)
+    debug('tracer=', traceOptions.tracer?.toString().split('\n').map((line, index) => `${index + 1}: ${line}`).join('\n'))
     throw e
   })
   // return applyTracer(ret, options)

@@ -1,0 +1,15 @@
+{
+  "gasFactor": "1",
+  "port": "4000",
+  "network": "https://rpc.katla.taiko.xyz/",
+  "entryPoint": "0x779eEcA2315a44D20806217c005731aE7DDB5ca0",
+  "beneficiary": "0xc82Ea2afE1Fd1D61C4A12f5CeB3D7000f564F5C6",
+  "minBalance": "1",
+  "debugRpc": false,
+  "maxBundleGas": 5e6,
+  "expirationTTL": 600,
+  "minStake": "1" ,
+  "minUnstakeDelay": 0 ,
+  "autoBundleInterval": 20,
+  "autoBundleMempoolSize": 10
+}
