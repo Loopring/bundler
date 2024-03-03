@@ -155,7 +155,7 @@ export class BundleManager {
       } else if (reasonStr.startsWith('AA1')) {
         this.reputationManager.crashedHandleOps(getAddr(userOp.initCode))
       } else {
-        this.mempoolManager.removeUserOp(userOp)
+        this.mempoolManager.removeUserOp(userOp, this.entryPoint.address)
         console.warn(`Failed handleOps sender=${userOp.sender} reason=${reasonStr}`)
       }
     }
@@ -205,7 +205,7 @@ export class BundleManager {
       const paymasterStatus = this.reputationManager.getStatus(paymaster)
       const deployerStatus = this.reputationManager.getStatus(factory)
       if (paymasterStatus === ReputationStatus.BANNED || deployerStatus === ReputationStatus.BANNED) {
-        this.mempoolManager.removeUserOp(entry.userOp)
+        this.mempoolManager.removeUserOp(entry.userOp, entry.entryPointAddr)
         continue
       }
       // [SREP-030]
@@ -230,7 +230,7 @@ export class BundleManager {
       } catch (e: any) {
         debug('failed 2nd validation:', e.message)
         // failed validation. don't try anymore
-        this.mempoolManager.removeUserOp(entry.userOp)
+        this.mempoolManager.removeUserOp(entry.userOp, entry.entryPointAddr)
         continue
       }
 

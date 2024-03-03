@@ -16,11 +16,12 @@ import { getNetworkProvider } from '../Config'
  * @param config
  * @param signer
  */
-export function initServer (config: BundlerConfig, signer: Signer): [ExecutionManager, EventsManager, ReputationManager, MempoolManager] {
+export async function initServer (config: BundlerConfig, signer: Signer): Promise<[ExecutionManager, EventsManager, ReputationManager, MempoolManager]> {
   const entryPoint = EntryPoint__factory.connect(config.entryPoint, signer)
   const reputationManager = new ReputationManager(getNetworkProvider(config.network), BundlerReputationParams, parseEther(config.minStake), config.minUnstakeDelay)
-  const mempoolManager = new MempoolManager(reputationManager, config.expirationTTL)
   const validationManager = new ValidationManager(entryPoint, config.unsafe)
+  const mempoolManager = new MempoolManager(reputationManager, validationManager, config.expirationTTL, config.data_directory)
+  await mempoolManager.loadUserOpsFromDisk()
   const eventsManager = new EventsManager(entryPoint, mempoolManager, reputationManager)
   const bundleManager = new BundleManager(entryPoint, eventsManager, mempoolManager, validationManager, reputationManager,
     config.beneficiary, parseEther(config.minBalance), config.maxBundleGas, config.conditionalRpc)

@@ -40,6 +40,7 @@ export class ExecutionManager {
       const userOpHash = await this.validationManager.entryPoint.getUserOpHash(userOp)
       this.mempoolManager.addUserOp(userOp,
         userOpHash,
+        entryPointInput,
         validationResult.returnInfo.prefund,
         validationResult.referencedContracts,
         validationResult.senderInfo,

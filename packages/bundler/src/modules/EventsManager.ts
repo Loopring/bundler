@@ -84,7 +84,7 @@ export class EventsManager {
 
   handleUserOperationEvent (ev: UserOperationEventEvent): void {
     const hash = ev.args.userOpHash
-    this.mempoolManager.removeUserOp(hash)
+    this.mempoolManager.removeUserOp(hash, this.entryPoint.address)
     this._includedAddress(ev.args.sender)
     this._includedAddress(ev.args.paymaster)
     this._includedAddress(this.getEventAggregator(ev))

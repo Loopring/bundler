@@ -119,6 +119,10 @@ export function getAddr (data?: BytesLike): string | undefined {
   return undefined
 }
 
+export function getUniqueKey (keyPrefix: string, entryPointAddr: string, sender: string, nonce: BigNumberish): string {
+  return [keyPrefix, entryPointAddr, sender, tostr(nonce)].join(':')
+}
+
 /**
  * merge all validationStorageMap objects into merged map
  * - entry with "root" (string) is always preferred over entry with slot-map

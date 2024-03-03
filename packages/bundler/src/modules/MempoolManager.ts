@@ -1,4 +1,6 @@
 import { BigNumber, BigNumberish } from 'ethers'
+import Level from 'level-ts'
+import { ValidationManager } from '@account-abstraction/validation-manager'
 import {
   ReferencedCodeHashes,
   RpcError,
@@ -6,7 +8,8 @@ import {
   UserOperation,
   ValidationErrors,
   getAddr,
-  requireCond
+  requireCond,
+  getUniqueKey
 } from '@account-abstraction/utils'
 import { ReputationManager } from './ReputationManager'
 import Debug from 'debug'
@@ -15,6 +18,7 @@ const debug = Debug('aa.mempool')
 
 export interface MempoolEntry {
   userOp: UserOperation
+  entryPointAddr: string
   userOpHash: string
   prefund: BigNumberish
   referencedContracts: ReferencedCodeHashes
@@ -34,6 +38,7 @@ export class MempoolManager {
 
   // count entities in mempool.
   private _entryCount: { [addr: string]: number | undefined } = {}
+  private readonly _db: Level
 
   entryCount (address: string): number | undefined {
     return this._entryCount[address.toLowerCase()]
@@ -61,8 +66,30 @@ export class MempoolManager {
 
   constructor (
     readonly reputationManager: ReputationManager,
-    readonly expirationTTL: number
+    private readonly validationManager: ValidationManager,
+    readonly expirationTTL: number,
+    readonly data_directory: string
   ) {
+    // load cached userops from disk
+    this._db = new Level(data_directory)
+  }
+
+  async loadUserOpsFromDisk (): Promise<void> {
+    const iterator = this._db.iterate()
+    let counts = 0
+    for await (const { value } of iterator) {
+      const entry = value as MempoolEntry
+      const validationResult = await this.validationManager.validateUserOp(entry.userOp, undefined)
+      this.addUserOp(entry.userOp, entry.userOpHash, entry.entryPointAddr, entry.prefund, entry.referencedContracts,
+        validationResult.senderInfo,
+        validationResult.paymasterInfo,
+        validationResult.factoryInfo,
+        validationResult.aggregatorInfo
+      )
+      counts += 1
+    }
+    await iterator.end()
+    debug('load num of userOps: ', counts)
   }
 
   count (): number {
@@ -75,6 +102,7 @@ export class MempoolManager {
   addUserOp (
     userOp: UserOperation,
     userOpHash: string,
+    entryPointInput: string,
     prefund: BigNumberish,
     referencedContracts: ReferencedCodeHashes,
     senderInfo: StakeInfo,
@@ -85,11 +113,12 @@ export class MempoolManager {
     const entry: MempoolEntry = {
       userOp,
       userOpHash,
+      entryPointAddr: entryPointInput,
       prefund,
       referencedContracts,
       aggregator: aggregatorInfo?.addr
     }
-    const index = this._findBySenderNonce(userOp.sender, userOp.nonce)
+    const index = this._findBySenderNonce(userOp.sender, userOp.nonce, entryPointInput)
     if (index !== -1) {
       const oldEntry = this.mempool[index]
       this.checkReplaceUserOp(oldEntry, entry)
@@ -110,6 +139,7 @@ export class MempoolManager {
       this.checkMultipleRolesViolation(userOp)
       this.mempool.push(entry)
     }
+    void this._db.put(getUniqueKey('mempool', entryPointInput, userOp.sender, userOp.nonce), entry)
     this.seenAt[entry.userOpHash] = Math.round(Date.now() / 1000)
     this.updateSeenStatus(aggregatorInfo?.addr, userOp, senderInfo)
   }
@@ -229,15 +259,15 @@ export class MempoolManager {
     for (const entry of copy) {
       if (this.checkIfExpired(entry.userOpHash)) {
         debug('found expired userop', entry.userOpHash)
-        this.removeUserOp(entry.userOpHash)
+        void this.removeUserOp(entry.userOpHash, entry.entryPointAddr)
       }
     }
   }
 
-  _findBySenderNonce (sender: string, nonce: BigNumberish): number {
+  _findBySenderNonce (sender: string, nonce: BigNumberish, entryPointInput: string): number {
     for (let i = 0; i < this.mempool.length; i++) {
-      const curOp = this.mempool[i].userOp
-      if (curOp.sender === sender && curOp.nonce === nonce) {
+      const { userOp: curOp, entryPointAddr } = this.mempool[i]
+      if (curOp.sender === sender && curOp.nonce === nonce && entryPointAddr === entryPointInput) {
         return i
       }
     }
@@ -258,17 +288,19 @@ export class MempoolManager {
    * remove UserOp from mempool. either it is invalid, or was included in a block
    * @param userOpOrHash
    */
-  removeUserOp (userOpOrHash: UserOperation | string): void {
+  removeUserOp (userOpOrHash: UserOperation | string, entryPointInput: string): void {
     let index: number
     if (typeof userOpOrHash === 'string') {
       index = this._findByHash(userOpOrHash)
     } else {
-      index = this._findBySenderNonce(userOpOrHash.sender, userOpOrHash.nonce)
+      index = this._findBySenderNonce(userOpOrHash.sender, userOpOrHash.nonce, entryPointInput)
     }
     if (index !== -1) {
       const userOp = this.mempool[index].userOp
       debug('removeUserOp', userOp.sender, userOp.nonce)
       this.mempool.splice(index, 1)
+      // TODO(provide truly entrypoints address)
+      void this._db.del(getUniqueKey('mempool', entryPointInput, userOp.sender, userOp.nonce))
       this.decrementEntryCount(userOp.sender)
       this.decrementEntryCount(getAddr(userOp.paymasterAndData))
       this.decrementEntryCount(getAddr(userOp.initCode))
