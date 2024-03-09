@@ -102,7 +102,12 @@ export class BundleManager {
    */
   async sendBundle (userOps: UserOperation[], beneficiary: string, storageMap: StorageMap): Promise<SendBundleReturn | undefined> {
     try {
-      const { maxFeePerGas, maxPriorityFeePerGas } = await this.getEIP1559GasPrice()
+      let { maxFeePerGas, maxPriorityFeePerGas } = await this.getEIP1559GasPrice()
+      // if the only one exist, use the same gas price to send tx onchain
+      if (userOps.length === 1 && this._checkIfFastGasPrice(userOps[0].maxPriorityFeePerGas)) {
+        maxPriorityFeePerGas = BigNumber.from(userOps[0].maxPriorityFeePerGas)
+        maxFeePerGas = BigNumber.from(userOps[0].maxFeePerGas)
+      }
       const tx = await this.entryPoint.populateTransaction.handleOps(userOps, beneficiary, {
         type: 2,
         nonce: await this.signer.getTransactionCount(),
@@ -281,8 +286,19 @@ export class BundleManager {
       senders.add(entry.userOp.sender)
       bundle.push(entry.userOp)
       totalGas = newTotalGas
+      if (this._checkIfFastGasPrice(entry.userOp.maxPriorityFeePerGas)) {
+        // bundle the single userop
+        debug(`handle prior userop: ${entry.userOpHash}`)
+        break
+      }
     }
     return [bundle, storageMap]
+  }
+
+  _checkIfFastGasPrice (priorityFee: BigNumberish): boolean {
+    // fetch min value
+    const minFastPriorityFee = BigNumber.from(10)
+    return BigNumber.from(priorityFee).gte(minFastPriorityFee)
   }
 
   /**
