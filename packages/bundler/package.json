@@ -12,6 +12,7 @@
     "runop": "ts-node ./src/runner/runop.ts",
     "bundler-goerli": "ts-node ./src/exec.ts --config ./localconfig/bundler_goerli.config.json",
     "bundler-taiko": "ts-node ./src/exec.ts --config ./localconfig/bundler_taiko.config.json",
+    "bundler-sepolia": "ts-node ./src/exec.ts --config ./localconfig/bundler_sepolia.config.json",
     "clear": "rm -rf dist artifacts cache src/types",
     "hardhat-compile": "hardhat compile",
     "hardhat-node": "npx hardhat node --no-deploy",

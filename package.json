@@ -15,6 +15,7 @@
   "scripts": {
     "bundler-goerli": "DEBUG=aa.* yarn --cwd packages/bundler bundler-goerli --unsafe",
     "bundler-taiko": "DEBUG=aa.* yarn --cwd packages/bundler bundler-taiko --unsafe",
+    "bundler-sepolia": "DEBUG=aa.* yarn --cwd packages/bundler bundler-sepolia --unsafe",
     "runop": "yarn --cwd packages/bundler runop",
     "runop-goerli": "yarn runop --network goerli",
     "create-all-deps": "jq '.dependencies,.devDependencies' packages/*/package.json |sort  -u > all.deps",
