@@ -2,7 +2,7 @@
   "gasFactor": "1",
   "port": "3000",
   "entryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-  "network": "https://sepolia.infura.io/v3/1c36cfe69c3f433e9bde4f21bb36e22c",
+  "network": "http://3.133.9.211:8545",
   "beneficiary": "0x456ecAca6A1Bc3a71fC1955562d1d9BF662974D8",
   "minBalance": "1",
   "debugRpc": true,
