@@ -3,7 +3,7 @@
   "port": "3000",
   "entryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
   "network": "http://3.133.9.211:8545",
-  "beneficiary": "0x456ecAca6A1Bc3a71fC1955562d1d9BF662974D8",
+  "beneficiary": "0xc82Ea2afE1Fd1D61C4A12f5CeB3D7000f564F5C6",
   "minBalance": "1",
   "debugRpc": true,
   "maxBundleGas": 5e6,
