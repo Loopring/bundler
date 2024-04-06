@@ -3,7 +3,8 @@ import fs from 'fs'
 
 import { BundlerConfig, bundlerConfigDefault, BundlerConfigShape } from './BundlerConfig'
 import * as dotenv from 'dotenv'
-import { Wallet, Signer } from 'ethers'
+import { Signer } from 'ethers'
+import { EnclaveSigner, EnclaveConfig } from '@account-abstraction/utils'
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers'
 dotenv.config()
 
@@ -52,9 +53,16 @@ export async function resolveConfiguration (programOpts: any): Promise<{ config:
   }
 
   const provider: BaseProvider = getNetworkProvider(config.network)
-  let wallet: Wallet
+  let wallet: Signer
+  const enclaveConfig: EnclaveConfig = {
+    enclaveUri: process.env.ENCLAVE_URI ?? '',
+    kmsDataKey: process.env.REQUEST_KEY ?? '',
+    awsKey: process.env.AWS_KEY ?? '',
+    awsSecret: process.env.AWS_SECRET ?? '',
+    secretId: process.env.SECRET_PRIVATE_KEY ?? ''
+  }
   try {
-    wallet = new Wallet(process.env.SIGNER_PRIVATE_KEY as string).connect(provider)
+    wallet = new EnclaveSigner(enclaveConfig, process.env.SIGNER_ADDRESS as string).connect(provider)
   } catch (e: any) {
     throw new Error(`Unable to read SIGNER_PRIVATE_KEY from env: ${e.message as string}`)
   }
