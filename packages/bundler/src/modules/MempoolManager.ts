@@ -79,14 +79,18 @@ export class MempoolManager {
     let counts = 0
     for await (const { value } of iterator) {
       const entry = value as MempoolEntry
-      const validationResult = await this.validationManager.validateUserOp(entry.userOp, undefined)
-      this.addUserOp(entry.userOp, entry.userOpHash, entry.entryPointAddr, entry.prefund, entry.referencedContracts,
-        validationResult.senderInfo,
-        validationResult.paymasterInfo,
-        validationResult.factoryInfo,
-        validationResult.aggregatorInfo
-      )
-      counts += 1
+      try {
+        const validationResult = await this.validationManager.validateUserOp(entry.userOp, undefined)
+        this.addUserOp(entry.userOp, entry.userOpHash, entry.entryPointAddr, entry.prefund, entry.referencedContracts,
+          validationResult.senderInfo,
+          validationResult.paymasterInfo,
+          validationResult.factoryInfo,
+          validationResult.aggregatorInfo
+        )
+        counts += 1
+      } catch (e) {
+        console.error('restore userop from db failed, skip it', e)
+      }
     }
     await iterator.end()
     debug('load num of userOps: ', counts)
