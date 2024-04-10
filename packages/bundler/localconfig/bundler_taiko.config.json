@@ -8,6 +8,7 @@
   "debugRpc": false,
   "maxBundleGas": 5e6,
   "expirationTTL": 600,
+  "data_directory": "/tmp/erc4337_bundler_taiko6_data_directory",
   "minStake": "1" ,
   "minUnstakeDelay": 0 ,
   "autoBundleInterval": 20,
