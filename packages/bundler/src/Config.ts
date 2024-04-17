@@ -3,7 +3,7 @@ import fs from 'fs'
 
 import { BundlerConfig, bundlerConfigDefault, BundlerConfigShape } from './BundlerConfig'
 import * as dotenv from 'dotenv'
-import { Signer } from 'ethers'
+import { Signer, Wallet } from 'ethers'
 import { EnclaveSigner, EnclaveConfig } from '@account-abstraction/utils'
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers'
 dotenv.config()
@@ -62,7 +62,11 @@ export async function resolveConfiguration (programOpts: any): Promise<{ config:
     secretId: process.env.SECRET_PRIVATE_KEY ?? ''
   }
   try {
-    wallet = new EnclaveSigner(enclaveConfig, process.env.SIGNER_ADDRESS as string).connect(provider)
+    if (config.useEnclave) {
+      wallet = new EnclaveSigner(enclaveConfig, process.env.SIGNER_ADDRESS as string).connect(provider)
+    } else {
+      wallet = new Wallet(process.env.SIGNER_PRIVATE_KEY as string).connect(provider)
+    }
   } catch (e: any) {
     throw new Error(`Unable to read SIGNER_PRIVATE_KEY from env: ${e.message as string}`)
   }
