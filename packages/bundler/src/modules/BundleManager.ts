@@ -103,10 +103,23 @@ export class BundleManager {
   async sendBundle (userOps: UserOperation[], beneficiary: string, storageMap: StorageMap): Promise<SendBundleReturn | undefined> {
     try {
       let { maxFeePerGas, maxPriorityFeePerGas } = await this.getEIP1559GasPrice()
+      const maxTimes = 10
+      const maxFeePerGasCap = maxFeePerGas.mul(maxTimes)
+      const maxPriorityFeePerGasCap = maxPriorityFeePerGas.mul(maxTimes)
+      // hashes are needed for debug rpc only.
+      const hashes = await this.getUserOpHashes(userOps)
       // if the only one exist, use the same gas price to send tx onchain
       if (userOps.length === 1 && this._checkIfFastGasPrice(userOps[0].maxPriorityFeePerGas)) {
         maxPriorityFeePerGas = BigNumber.from(userOps[0].maxPriorityFeePerGas)
         maxFeePerGas = BigNumber.from(userOps[0].maxFeePerGas)
+        debug(`userOp(${hashes[0]}) has too high gas price, only no exceed ${maxTimes} times of current market gas price is allowed`)
+        // set cap to prevent from too high gas price
+        if (maxPriorityFeePerGas.gt(maxPriorityFeePerGasCap)) {
+          maxPriorityFeePerGas = maxPriorityFeePerGasCap
+        }
+        if (maxFeePerGas.gt(maxFeePerGasCap)) {
+          maxFeePerGas = maxFeePerGasCap
+        }
       }
       const tx = await this.entryPoint.populateTransaction.handleOps(userOps, beneficiary, {
         type: 2,
@@ -132,8 +145,7 @@ export class BundleManager {
       // TODO: parse ret, and revert if needed.
       debug('ret=', ret)
       debug('sent handleOps with', userOps.length, 'ops. removing from mempool')
-      // hashes are needed for debug rpc only.
-      const hashes = await this.getUserOpHashes(userOps)
+
       return {
         transactionHash: ret,
         userOpHashes: hashes
