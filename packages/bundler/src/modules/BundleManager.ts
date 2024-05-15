@@ -103,8 +103,8 @@ export class BundleManager {
   async sendBundle (userOps: UserOperation[], beneficiary: string, storageMap: StorageMap): Promise<SendBundleReturn | undefined> {
     try {
       let { maxFeePerGas, maxPriorityFeePerGas } = await this.getEIP1559GasPrice()
-      const maxTimes = 10
-      const maxFeePerGasCap = maxFeePerGas.mul(maxTimes)
+      const maxTimes = 5
+      const maxFeePerGasCap = maxFeePerGas
       const maxPriorityFeePerGasCap = maxPriorityFeePerGas.mul(maxTimes)
       // hashes are needed for debug rpc only.
       const hashes = await this.getUserOpHashes(userOps)
