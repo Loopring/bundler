@@ -56,7 +56,7 @@ export const bundlerConfigDefault: Partial<BundlerConfig> = {
   port: '3000',
   entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
   unsafe: false,
-  useEnclave: true,
+  useEnclave: false,
   conditionalRpc: false,
   data_directory: '/tmp/erc4337_bundler_data_directory',
   minStake: MIN_STAKE_VALUE,
