@@ -24,9 +24,14 @@ cp .env.example .env
 modify config file in packages/bundler/localconfig/bundler_sepolia.config.json or bundler_taiko.config.json as you want
 
 ```
-enable some rpc methods for debug purposes
+// enable some rpc methods for debug purposes
 {
-    debugRpc: true
+    "debugRpc": true
+}
+
+// set node rpc the network
+{
+    "network": "http://xxx.xxx.xxx.xxx:8545",
 }
 ```
 
