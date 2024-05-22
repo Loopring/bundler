@@ -74,7 +74,7 @@ tail -f bundler_sepolia.log
    1. `port`: 启动端口
    2. `entryPoint`: 支持的entrypoint版本
    3. `network`: 节点地址
-   4. `beneficiary`: 收费地址，一般配成operator地址
+   4. `beneficiary`: 收费地址，一般配成operator地址。bundler自己从operator付gas，从entrypoint收用户的ETH fee，一般情况 bundler应该收支平衡（或略盈余），如果bundler这个operator地址比初始转入的低很多 就得看下哪里有问题
 
 命令：
 1. 启动：`nohup yarn run bundler-sepolia  > bundler_sepolia.log 2>&1 &`
