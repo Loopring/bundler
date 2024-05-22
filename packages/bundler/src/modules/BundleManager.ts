@@ -43,7 +43,9 @@ export class BundleManager {
     // use eth_sendRawTransactionConditional with storage map
     readonly conditionalRpc: boolean,
     // in conditionalRpc: always put root hash (not specific storage slots) for "sender" entries
-    readonly mergeToAccountRootHash: boolean = false
+    readonly mergeToAccountRootHash: boolean = false,
+    readonly minPriorityRateForFastUserOp: number = 2,
+    readonly maxTimesOfPriorityFee: number = 10
   ) {
     this.provider = entryPoint.provider as JsonRpcProvider
     this.signer = entryPoint.signer as JsonRpcSigner
@@ -77,24 +79,6 @@ export class BundleManager {
     await this.eventsManager.handlePastEvents()
   }
 
-  async getEIP1559GasPrice (): Promise<EIP1559GasPrice> {
-    const block = await this.provider.getBlock('pending')
-    const baseFeePerGas = block.baseFeePerGas ?? BigNumber.from(0)
-    // NOTE(fixed maxPriorityFeePerGas returned from ethers getFeeData API is not properly)
-    const maxPriorityFeePerGas = BigNumber.from(await this.provider.send('eth_maxPriorityFeePerGas', []))
-    const maxFeePerGas = baseFeePerGas.add(maxPriorityFeePerGas)
-    return { maxFeePerGas, maxPriorityFeePerGas, baseFeePerGas }
-  }
-
-  checkEnoughGasPrice (userOp: UserOperation, bundlerGasPrice: EIP1559GasPrice): boolean {
-    if (userOp.maxFeePerGas === userOp.maxPriorityFeePerGas) {
-      // legacy mode (for networks that don't support basefee opcode)
-      return bundlerGasPrice.maxFeePerGas.lt(userOp.maxFeePerGas)
-    }
-    return bundlerGasPrice.maxPriorityFeePerGas.lt(userOp.maxPriorityFeePerGas) &&
-          bundlerGasPrice.maxFeePerGas.lt(userOp.maxFeePerGas)
-  }
-
   /**
    * submit a bundle.
    * after submitting the bundle, remove all UserOps from the mempool
@@ -102,25 +86,29 @@ export class BundleManager {
    */
   async sendBundle (userOps: UserOperation[], beneficiary: string, storageMap: StorageMap): Promise<SendBundleReturn | undefined> {
     try {
-      let { maxFeePerGas, maxPriorityFeePerGas } = await this.getEIP1559GasPrice()
-      const maxTimes = 5
-      const maxFeePerGasCap = maxFeePerGas
-      const maxPriorityFeePerGasCap = maxPriorityFeePerGas.mul(maxTimes)
+      const { maxFeePerGas, maxPriorityFeePerGas } = await this._getEIP1559GasPrice()
+      // const maxFeePerGasCap = maxFeePerGas
+      // const maxPriorityFeePerGasCap = maxPriorityFeePerGas.mul(this.maxTimesOfPriorityFee)
       // hashes are needed for debug rpc only.
       const hashes = await this.getUserOpHashes(userOps)
       // if the only one exist, use the same gas price to send tx onchain
-      if (userOps.length === 1 && this._checkIfFastGasPrice(userOps[0].maxPriorityFeePerGas)) {
-        maxPriorityFeePerGas = BigNumber.from(userOps[0].maxPriorityFeePerGas)
-        maxFeePerGas = BigNumber.from(userOps[0].maxFeePerGas)
-        debug(`userOp(${hashes[0]}) has too high gas price, only no exceed ${maxTimes} times of current market gas price is allowed`)
-        // set cap to prevent from too high gas price
-        if (maxPriorityFeePerGas.gt(maxPriorityFeePerGasCap)) {
-          maxPriorityFeePerGas = maxPriorityFeePerGasCap
-        }
-        if (maxFeePerGas.gt(maxFeePerGasCap)) {
-          maxFeePerGas = maxFeePerGasCap
-        }
-      }
+      // if (userOps.length === 1 && this._checkIfFastGasPrice(userOps[0].maxPriorityFeePerGas, maxPriorityFeePerGas)) {
+      // maxPriorityFeePerGas = BigNumber.from(userOps[0].maxPriorityFeePerGas)
+      // maxFeePerGas = BigNumber.from(userOps[0].maxFeePerGas)
+      // debug(`userOp(${hashes[0]}) has too high gas price, only no exceed ${this.maxTimesOfPriorityFee} times of current market gas price is allowed`)
+      // // set cap to prevent from too high gas price
+      // if (maxPriorityFeePerGas.gt(maxPriorityFeePerGasCap)) {
+      // maxPriorityFeePerGas = maxPriorityFeePerGasCap
+      // }
+      // if (maxFeePerGas.gt(maxFeePerGasCap)) {
+      // maxFeePerGas = maxFeePerGasCap
+      // }
+      // }
+
+      // // prevent from maxPriorityFee is higher than maxFee
+      // if (maxPriorityFeePerGas.gt(maxFeePerGas)) {
+      // maxPriorityFeePerGas = maxFeePerGas
+      // }
       const tx = await this.entryPoint.populateTransaction.handleOps(userOps, beneficiary, {
         type: 2,
         nonce: await this.signer.getTransactionCount(),
@@ -129,6 +117,7 @@ export class BundleManager {
         maxPriorityFeePerGas
       })
       tx.chainId = this.provider._network.chainId
+      debug('send tx: ', tx)
       const signedTx = await this.signer.signTransaction(tx)
       let ret: string
       if (this.conditionalRpc) {
@@ -204,12 +193,12 @@ export class BundleManager {
 
     const storageMap: StorageMap = {}
     let totalGas = BigNumber.from(0)
-    const bundlerGasPrice = await this.getEIP1559GasPrice()
+    const bundlerGasPrice = await this._getEIP1559GasPrice()
     debug('got mempool of ', entries.length)
     // eslint-disable-next-line no-labels
     mainLoop:
     for (const entry of entries) {
-      if (!this.checkEnoughGasPrice(entry.userOp, bundlerGasPrice)) {
+      if (!this._checkEnoughGasPrice(entry.userOp, bundlerGasPrice)) {
         debug(`skipping too low, \
             maxPriorityFeePerGas: ${BigNumber.from(entry.userOp.maxPriorityFeePerGas).toString()}, \
             maxFeePerGas: ${BigNumber.from(entry.userOp.maxFeePerGas).toString()} \
@@ -298,7 +287,7 @@ export class BundleManager {
       senders.add(entry.userOp.sender)
       bundle.push(entry.userOp)
       totalGas = newTotalGas
-      if (this._checkIfFastGasPrice(entry.userOp.maxPriorityFeePerGas)) {
+      if (this._checkIfFastGasPrice(entry.userOp.maxPriorityFeePerGas, this.minPriorityRateForFastUserOp)) {
         // bundle the single userop
         debug(`handle prior userop: ${entry.userOpHash}`)
         break
@@ -307,10 +296,28 @@ export class BundleManager {
     return [bundle, storageMap]
   }
 
-  _checkIfFastGasPrice (priorityFee: BigNumberish): boolean {
+  _checkIfFastGasPrice (priorityFee: BigNumberish, marketPriorityFee: BigNumberish): boolean {
     // fetch min value
-    const minFastPriorityFee = BigNumber.from(10)
+    const minFastPriorityFee = BigNumber.from(marketPriorityFee).mul(this.minPriorityRateForFastUserOp)
     return BigNumber.from(priorityFee).gte(minFastPriorityFee)
+  }
+
+  _checkEnoughGasPrice (userOp: UserOperation, bundlerGasPrice: EIP1559GasPrice): boolean {
+    if (userOp.maxFeePerGas === userOp.maxPriorityFeePerGas) {
+      // legacy mode (for networks that don't support basefee opcode)
+      return bundlerGasPrice.maxFeePerGas.lt(userOp.maxFeePerGas)
+    }
+    return bundlerGasPrice.maxPriorityFeePerGas.lt(userOp.maxPriorityFeePerGas) &&
+          bundlerGasPrice.maxFeePerGas.lt(userOp.maxFeePerGas)
+  }
+
+  async _getEIP1559GasPrice (): Promise<EIP1559GasPrice> {
+    const block = await this.provider.getBlock('pending')
+    const baseFeePerGas = block.baseFeePerGas ?? BigNumber.from(0)
+    // NOTE(fixed maxPriorityFeePerGas returned from ethers getFeeData API is not properly)
+    const maxPriorityFeePerGas = BigNumber.from(await this.provider.send('eth_maxPriorityFeePerGas', []))
+    const maxFeePerGas = baseFeePerGas.add(maxPriorityFeePerGas)
+    return { maxFeePerGas, maxPriorityFeePerGas, baseFeePerGas }
   }
 
   /**
