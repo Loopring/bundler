@@ -64,3 +64,19 @@ nohup yarn run bundler-sepolia  > bundler_sepolia.log 2>&1 &
 
 tail -f bundler_sepolia.log
 ```
+
+配置说明：
+1. `packages/bundler/.env` 最小要配`SIGNER_PRIVATE_KEY`，并且配的私钥 地址上要有ETH
+2. `yarn bundler-sepolia` 命令里的`bundler-sepolia`，要在外部和内部两个package.json
+   1. 外部：需要在`package.json`里的`scripts`添加`"bundler-sepolia": "DEBUG=aa.* yarn --cwd packages/bundler bundler-sepolia --unsafe"`（外部的命令去调用内部的命令）
+   2. 内部：需要在`packages/bundler/package.json`里的`scripts`添加`"bundler-sepolia": "ts-node ./src/exec.ts --config ./localconfig/bundler_sepolia.config.json"`
+3. `packages/bundler/localconfig/bundler_sepolia.config.json`
+   1. `port`: 启动端口
+   2. `entryPoint`: 支持的entrypoint版本
+   3. `network`: 节点地址
+   4. `beneficiary`: 收费地址，一般配成operator地址
+
+命令：
+1. 启动：`nohup yarn run bundler-sepolia  > bundler_sepolia.log 2>&1 &`
+2. 检查端口是否已启动 `netstat -nlp | grep 5000| awk '{print $7}' | awk -F"/" '{print $1}'`
+3. 重启时，先按端口查找进程，如果存在就 `kill -9 $pid`，再启动
