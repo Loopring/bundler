@@ -13,6 +13,7 @@
     ]
   },
   "scripts": {
+    "bundler-ethereum": "DEBUG=aa.* yarn --cwd packages/bundler bundler-ethereum --unsafe",
     "bundler-taiko": "DEBUG=aa.* yarn --cwd packages/bundler bundler-taiko --unsafe",
     "bundler-sepolia": "DEBUG=aa.* yarn --cwd packages/bundler bundler-sepolia --unsafe",
     "runop": "yarn --cwd packages/bundler runop",
