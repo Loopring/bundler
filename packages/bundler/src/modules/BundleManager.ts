@@ -86,29 +86,22 @@ export class BundleManager {
    */
   async sendBundle (userOps: UserOperation[], beneficiary: string, storageMap: StorageMap): Promise<SendBundleReturn | undefined> {
     try {
-      const { maxFeePerGas, maxPriorityFeePerGas } = await this._getEIP1559GasPrice()
-      // const maxFeePerGasCap = maxFeePerGas
-      // const maxPriorityFeePerGasCap = maxPriorityFeePerGas.mul(this.maxTimesOfPriorityFee)
+      let { maxFeePerGas, maxPriorityFeePerGas, baseFeePerGas } = await this._getEIP1559GasPrice()
+      // set gasprice cap for bundler's tx
+      const maxPriorityFeePerGasCap = maxPriorityFeePerGas.mul(this.maxTimesOfPriorityFee)
       // hashes are needed for debug rpc only.
       const hashes = await this.getUserOpHashes(userOps)
       // if the only one exist, use the same gas price to send tx onchain
-      // if (userOps.length === 1 && this._checkIfFastGasPrice(userOps[0].maxPriorityFeePerGas, maxPriorityFeePerGas)) {
-      // maxPriorityFeePerGas = BigNumber.from(userOps[0].maxPriorityFeePerGas)
-      // maxFeePerGas = BigNumber.from(userOps[0].maxFeePerGas)
-      // debug(`userOp(${hashes[0]}) has too high gas price, only no exceed ${this.maxTimesOfPriorityFee} times of current market gas price is allowed`)
-      // // set cap to prevent from too high gas price
-      // if (maxPriorityFeePerGas.gt(maxPriorityFeePerGasCap)) {
-      // maxPriorityFeePerGas = maxPriorityFeePerGasCap
-      // }
-      // if (maxFeePerGas.gt(maxFeePerGasCap)) {
-      // maxFeePerGas = maxFeePerGasCap
-      // }
-      // }
+      if (userOps.length === 1 && this._checkIfFastGasPrice(userOps[0].maxPriorityFeePerGas, maxPriorityFeePerGas)) {
+        maxPriorityFeePerGas = BigNumber.from(userOps[0].maxPriorityFeePerGas)
+        // set cap to prevent from too high gas price
+        if (maxPriorityFeePerGas.gt(maxPriorityFeePerGasCap)) {
+          debug(`userOp(${hashes[0]}) has too high gas price, only no exceed ${this.maxTimesOfPriorityFee} times of current market gas price is allowed`)
+          maxPriorityFeePerGas = maxPriorityFeePerGasCap
+        }
+      }
+      maxFeePerGas = baseFeePerGas.add(maxPriorityFeePerGas)
 
-      // // prevent from maxPriorityFee is higher than maxFee
-      // if (maxPriorityFeePerGas.gt(maxFeePerGas)) {
-      // maxPriorityFeePerGas = maxFeePerGas
-      // }
       const tx = await this.entryPoint.populateTransaction.handleOps(userOps, beneficiary, {
         type: 2,
         nonce: await this.signer.getTransactionCount(),
