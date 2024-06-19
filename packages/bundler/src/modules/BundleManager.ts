@@ -116,6 +116,7 @@ export class BundleManager {
       }
       if (maxFeePerGas.lt(maxPriorityFeePerGas)) {
         maxFeePerGas = maxPriorityFeePerGas
+        requiredGasFees.maxFeePerGas = maxFeePerGas
       }
 
       const tx = await this.entryPoint.populateTransaction.handleOps(userOps, beneficiary, {
@@ -206,7 +207,7 @@ export class BundleManager {
     // eslint-disable-next-line no-labels
     mainLoop:
     for (const entry of entries) {
-      if (!this._checkEnoughGasPrice(entry.userOp, requiredGasFees)) {
+      if (!this._checkEnoughGasPrice(entry.userOp, requiredGasFees, requiredGasFees.baseFeePerGas)) {
         debug(`skipping too low, \
             maxPriorityFeePerGas: ${BigNumber.from(entry.userOp.maxPriorityFeePerGas).toString()}, \
             maxFeePerGas: ${BigNumber.from(entry.userOp.maxFeePerGas).toString()} \
@@ -310,13 +311,12 @@ export class BundleManager {
     return BigNumber.from(priorityFee).gte(minFastPriorityFee)
   }
 
-  _checkEnoughGasPrice (userOp: UserOperation, bundlerGasPrice: EIP1559GasPrice): boolean {
-    if (userOp.maxFeePerGas === userOp.maxPriorityFeePerGas) {
-      // legacy mode (for networks that don't support basefee opcode)
-      return bundlerGasPrice.maxFeePerGas.lt(userOp.maxFeePerGas)
+  _checkEnoughGasPrice (userOp: UserOperation, bundlerGasPrice: EIP1559GasPrice, baseFeePerGas: BigNumber): boolean {
+    let userOpGasPrice = baseFeePerGas.add(userOp.maxPriorityFeePerGas)
+    if (userOpGasPrice.gt(userOp.maxFeePerGas)) {
+      userOpGasPrice = BigNumber.from(userOp.maxFeePerGas)
     }
-    return bundlerGasPrice.maxPriorityFeePerGas.lt(userOp.maxPriorityFeePerGas) &&
-          bundlerGasPrice.maxFeePerGas.lt(userOp.maxFeePerGas)
+    return userOpGasPrice.gte(bundlerGasPrice.maxPriorityFeePerGas.add(baseFeePerGas))
   }
 
   async _getEIP1559GasPrice (): Promise<EIP1559GasPrice> {
