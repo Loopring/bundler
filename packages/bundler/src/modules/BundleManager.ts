@@ -113,9 +113,12 @@ export class BundleManager {
           debug(`userOp(${hashes[0]}) has too high gas price, only no exceed ${this.maxTimesOfPriorityFee} times of current market gas price is allowed`)
           maxPriorityFeePerGas = maxPriorityFeePerGasCap
         }
+        // update required priority fee
+        requiredGasFees.maxPriorityFeePerGas = maxPriorityFeePerGas
       }
       if (maxFeePerGas.lt(maxPriorityFeePerGas)) {
         maxFeePerGas = maxPriorityFeePerGas
+        // update required max fee
         requiredGasFees.maxFeePerGas = maxFeePerGas
       }
 
