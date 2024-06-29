@@ -10,7 +10,7 @@ import {
   SmartWalletV3__factory as IAccount__factory,
   EntryPoint as IEntryPoint,
   EntryPoint__factory as IEntryPoint__factory,
-  VerifyingPaymaster__factory as IPaymaster__factory,
+  LoopringPaymaster__factory as IPaymaster__factory,
   SenderCreator__factory
 } from '@account-abstraction/contracts'
 import { BundlerTracerResult } from './BundlerCollectorTracer'

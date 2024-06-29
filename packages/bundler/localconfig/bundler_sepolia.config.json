@@ -1,0 +1,16 @@
+{
+  "gasFactor": "1",
+  "port": "3000",
+  "entryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+  "network": "http://3.133.9.211:8545",
+  "beneficiary": "0x3419349cD15816CD20E36DB47960cDB90f50E5b9",
+  "minBalance": "1",
+  "debugRpc": true,
+  "maxBundleGas": 5e6,
+  "expirationTTL": 600,
+  "data_directory": "/tmp/erc4337_bundler_sepolia_data_directory",
+  "minStake": "1" ,
+  "minUnstakeDelay": 0 ,
+  "autoBundleInterval": 1,
+  "autoBundleMempoolSize": 10
+}

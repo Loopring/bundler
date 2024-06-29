@@ -10,8 +10,9 @@
   ],
   "scripts": {
     "runop": "ts-node ./src/runner/runop.ts",
-    "bundler-goerli": "ts-node ./src/exec.ts --config ./localconfig/bundler_goerli.config.json",
+    "bundler-ethereum": "ts-node ./src/exec.ts --config ./localconfig/bundler_ethereum.config.json",
     "bundler-taiko": "ts-node ./src/exec.ts --config ./localconfig/bundler_taiko.config.json",
+    "bundler-sepolia": "ts-node ./src/exec.ts --config ./localconfig/bundler_sepolia.config.json",
     "clear": "rm -rf dist artifacts cache src/types",
     "hardhat-compile": "hardhat compile",
     "hardhat-node": "npx hardhat node --no-deploy",
@@ -41,6 +42,7 @@
     "ethers": "^5.7.0",
     "express": "^4.18.1",
     "hardhat-gas-reporter": "^1.0.8",
+    "level-ts": "^2.1.0",
     "ow": "^0.28.1"
   },
   "devDependencies": {

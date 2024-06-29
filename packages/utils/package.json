@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@account-abstraction/contracts": "^0.6.0",
+    "@aws-sdk/client-kms": "^3.549.0",
     "@ethersproject/abi": "^5.7.0",
     "@ethersproject/providers": "^5.7.0",
     "@openzeppelin/contracts": "^4.7.3",

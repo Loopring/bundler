@@ -7,8 +7,8 @@ import {
 
 import { TransactionDetailsForUserOp } from './TransactionDetailsForUserOp'
 import { resolveProperties } from 'ethers/lib/utils'
-import { PaymasterAPI, PaymasterOption } from './PaymasterAPI'
-import { ApprovalOption, GuardianAPI } from './GuardianAPI'
+import { LoopringPaymasterAPI, LoopringPaymasterOption } from './LoopringPaymasterAPI'
+import { ApprovalOption, LoopringGuardianAPI, Approval } from './LoopringGuardianAPI'
 import { getUserOpHash, NotPromise, packUserOp } from '@account-abstraction/utils'
 import { calcPreVerificationGas, GasOverheads } from './calcPreVerificationGas'
 
@@ -17,8 +17,8 @@ export interface BaseApiParams {
   entryPointAddress: string
   accountAddress?: string
   overheads?: Partial<GasOverheads>
-  paymasterAPI?: PaymasterAPI
-  guardianAPI?: GuardianAPI
+  paymasterAPI?: LoopringPaymasterAPI
+  guardianAPI?: LoopringGuardianAPI
 }
 
 export interface UserOpResult {
@@ -49,8 +49,8 @@ export abstract class BaseAccountAPI {
   overheads?: Partial<GasOverheads>
   entryPointAddress: string
   accountAddress?: string
-  paymasterAPI?: PaymasterAPI
-  guardianAPI?: GuardianAPI
+  paymasterAPI?: LoopringPaymasterAPI
+  guardianAPI?: LoopringGuardianAPI
 
   /**
    * base constructor.
@@ -225,7 +225,7 @@ export abstract class BaseAccountAPI {
    * - if gas or nonce are missing, read them from the chain (note that we can't fill gaslimit before the account is created)
    * @param info
    */
-  async createUnsignedUserOp (info: TransactionDetailsForUserOp, paymasterOption?: PaymasterOption): Promise<UserOperationStruct> {
+  async createUnsignedUserOp (info: TransactionDetailsForUserOp, paymasterOption?: LoopringPaymasterOption): Promise<UserOperationStruct> {
     const {
       callData,
       callGasLimit
@@ -284,14 +284,21 @@ export abstract class BaseAccountAPI {
    * @param userOp the UserOperation to sign (with signature field ignored)
    */
   async signUserOp (userOp: UserOperationStruct, approvalOption?: ApprovalOption): Promise<UserOperationStruct> {
-    let signature: string
     const userOpHash = await this.getUserOpHash(userOp)
+    let signature: string
+    let approval: Approval
+    const ownerSignature = await this.signUserOpHash(userOpHash)
     if (approvalOption != null && this.guardianAPI != null) {
       const op = await resolveProperties(userOp)
-      signature = await this.guardianAPI.signUserOp(op.callData, userOpHash, approvalOption)
+      approval = await this.guardianAPI.signUserOp(op.callData, approvalOption)
+      signature = ethers.utils.defaultAbiCoder.encode(
+        ['tuple(address[] signers,bytes[] signatures,uint256 validUntil,bytes32 salt)', 'bytes'],
+        [approval, ownerSignature]
+      )
     } else {
-      signature = await this.signUserOpHash(userOpHash)
+      signature = ownerSignature
     }
+
     return {
       ...userOp,
       signature
@@ -302,7 +309,7 @@ export abstract class BaseAccountAPI {
    * helper method: create and sign a user operation.
    * @param info transaction details for the userOp
    */
-  async createSignedUserOp (info: TransactionDetailsForUserOp, paymasterOption?: PaymasterOption, approvalOption?: ApprovalOption): Promise<UserOperationStruct> {
+  async createSignedUserOp (info: TransactionDetailsForUserOp, paymasterOption?: LoopringPaymasterOption, approvalOption?: ApprovalOption): Promise<UserOperationStruct> {
     return await this.signUserOp(await this.createUnsignedUserOp(info, paymasterOption), approvalOption)
   }
 

@@ -1,4 +1,4 @@
-import { PaymasterAPI } from './PaymasterAPI'
+import { LoopringPaymasterAPI } from './LoopringPaymasterAPI'
 
 /**
  * configuration params for wrapProvider
@@ -22,5 +22,5 @@ export interface ClientConfig {
   /**
    * if set, call just before signing.
    */
-  paymasterAPI?: PaymasterAPI
+  paymasterAPI?: LoopringPaymasterAPI
 }

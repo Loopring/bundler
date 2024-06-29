@@ -11,9 +11,11 @@ export interface BundlerConfig {
   network: string
   port: string
   unsafe: boolean
+  useEnclave: boolean
   debugRpc?: boolean
   conditionalRpc: boolean
   expirationTTL: number
+  data_directory: string
 
   whitelist?: string[]
   blacklist?: string[]
@@ -33,9 +35,11 @@ export const BundlerConfigShape = {
   network: ow.string,
   port: ow.string,
   unsafe: ow.boolean,
+  useEnclave: ow.boolean,
   debugRpc: ow.optional.boolean,
   conditionalRpc: ow.boolean,
   expirationTTL: ow.number,
+  data_directory: ow.string,
 
   whitelist: ow.optional.array.ofType(ow.string),
   blacklist: ow.optional.array.ofType(ow.string),
@@ -52,7 +56,9 @@ export const bundlerConfigDefault: Partial<BundlerConfig> = {
   port: '3000',
   entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
   unsafe: false,
+  useEnclave: false,
   conditionalRpc: false,
+  data_directory: '/tmp/erc4337_bundler_data_directory',
   minStake: MIN_STAKE_VALUE,
   minUnstakeDelay: MIN_UNSTAKE_DELAY
 }

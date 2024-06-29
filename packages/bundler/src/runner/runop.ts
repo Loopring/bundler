@@ -20,9 +20,10 @@ import {
   DeterministicDeployer,
   HttpRpcClient,
   LoopringAccountAPI as SimpleAccountAPI,
-  PaymasterOption, PaymasterAPI,
-  ApprovalOption, GuardianAPI, ActionType
-  // calcPreVerificationGas
+  LoopringPaymasterOption, LoopringPaymasterAPI,
+  ApprovalOption, LoopringGuardianAPI, ActionType
+  // SmartWalletV3, VerifyingPaymaster, VerifyingPaymaster__factory,
+  // calcPreVerificationGas, USDT__factory
 } from '@account-abstraction/sdk'
 import { getNetworkProvider } from '../Config'
 
@@ -66,11 +67,11 @@ class Runner {
     // const dep = new DeterministicDeployer(this.provider)
     const accountDeployer = await DeterministicDeployer.getAddress(new SimpleAccountFactory__factory(), 0, [this.entryPointAddress])
     this.bundlerProvider = new HttpRpcClient(this.bundlerUrl, this.entryPointAddress, chainId)
-    const paymasterAPI = new PaymasterAPI({
+    const paymasterAPI = new LoopringPaymasterAPI({
       paymaster: this.paymaster,
       paymasterOwner: this.paymasterOwner
     })
-    const guardianAPI = new GuardianAPI({
+    const guardianAPI = new LoopringGuardianAPI({
       owner: this.accountOwner,
       wallet: accountAddress,
       verifyingContract: SMARTWALLET_IMPL,
@@ -104,7 +105,7 @@ class Runner {
     return e
   }
 
-  async runUserOp (target: string, data: string, paymasterOption?: PaymasterOption, approvalOption?: ApprovalOption): Promise<void> {
+  async runUserOp (target: string, data: string, paymasterOption?: LoopringPaymasterOption, approvalOption?: ApprovalOption): Promise<void> {
     const signedUserOp = await this.accountApi.createSignedUserOp({
       target,
       data
@@ -159,7 +160,7 @@ async function main (): Promise<void> {
   const bal = await getBalance(addr)
   console.log('account address', addr, 'deployed=', await isDeployed(addr), 'bal=', formatEther(bal))
 
-  const payToken = '0x116C55AFEaB4f16CcC5e91B563D450A4aE14CA15'
+  const payToken = '0x85E48056F3Dc8899d4B57e21e9EEf2D4c079d5ff'
   const paymasterOption = {
     payToken,
     valueOfEth: ethers.utils.parseUnits('625', 12),
@@ -167,13 +168,14 @@ async function main (): Promise<void> {
   }
   const approvalOption = {
     validUntil: 0,
-    action_type: ActionType.ApproveToken
+    action_type: ActionType.ApproveToken,
+    salt: ethers.utils.randomBytes(32)
   }
   const data = SmartWalletV3__factory.createInterface().encodeFunctionData('approveTokenWA', [payToken, PAYMASTER, ethers.constants.MaxUint256])
   // const data = USDT__factory.createInterface().encodeFunctionData('balanceOf', [addr])
-  // const data = keccak256(Buffer.from('entryPoint()')).slice(0, 10)
+  // const data = ethers.utils.keccak256(Buffer.from('entryPoint()')).slice(0, 10)
   console.log('data=', data)
-  await client.runUserOp(payToken, data, paymasterOption, approvalOption)
+  await client.runUserOp(addr, data, paymasterOption, approvalOption)
   console.log('after run1')
   // client.accountApi.overheads!.perUserOp = 30000
   // await client.runUserOp(dest, data, paymasterOption, signer)
