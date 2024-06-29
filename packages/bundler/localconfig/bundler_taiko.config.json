@@ -1,7 +1,7 @@
 {
   "gasFactor": "1",
   "port": "4000",
-  "network": "https://rpc.mainnet.taiko.xyz",
+  "network": "https://taiko-rpc.zkpool.io",
   "entryPoint": "0x5C07472a097D0e7212612846305a73342Dc01b9A",
   "beneficiary": "0x88B45CeaA3B2040FFd19a3F78398d3B60Ff7C9FD",
   "minBalance": "1",
