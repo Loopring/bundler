@@ -81,3 +81,7 @@ tail -f bundler_sepolia.log
 1. 启动：`nohup yarn run bundler-sepolia  > bundler_sepolia.log 2>&1 &`
 2. 检查端口是否已启动 `netstat -nlp | grep 5000| awk '{print $7}' | awk -F"/" '{print $1}'`
 3. 重启时，先按端口查找进程，如果存在就 `kill -9 $pid`，再启动
+4. 检查bundler服务
+```
+curl -X POST --url https://bundler-taiko.tokenbank.com/rpc --header 'accept: application/json' --header 'content-type: application/json'  --data ' {"id": 1,"jsonrpc": "2.0", "method": "eth_supportedEntryPoints"}'
+```
