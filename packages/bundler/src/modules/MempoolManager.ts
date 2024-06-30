@@ -90,6 +90,8 @@ export class MempoolManager {
         counts += 1
       } catch (e) {
         console.error('restore userop from db failed, skip it', e)
+        // remove failed userop from cache
+        await this._db.del(getUniqueKey('mempool', entry.entryPointAddr, entry.userOp.sender, entry.userOp.nonce))
       }
     }
     await iterator.end()
